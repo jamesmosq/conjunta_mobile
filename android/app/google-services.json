@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "678958986956",
+    "project_id": "conjunta-504d7",
+    "storage_bucket": "conjunta-504d7.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:678958986956:android:40af77598d681e7be57469",
+        "android_client_info": {
+          "package_name": "com.cojunta.cojunta_mobile"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCVB5C0Rc1XkYJ833zz5KTikmunOKUKmvk"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

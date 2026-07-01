@@ -1,0 +1,59 @@
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+import '../data/auth_repository.dart';
+import '../models/user_session.dart';
+
+final authStateProvider = AsyncNotifierProvider<AuthNotifier, AuthUser?>(
+  AuthNotifier.new,
+);
+
+class AuthNotifier extends AsyncNotifier<AuthUser?> {
+  @override
+  Future<AuthUser?> build() async {
+    final repo = ref.read(authRepositoryProvider);
+    final stored = await repo.getStoredSession();
+    if (stored == null) return null;
+    return AuthUser(
+      id: stored.userId,
+      name: stored.name ?? '',
+      email: stored.email ?? '',
+      role: stored.role,
+      tenantId: stored.tenantId,
+      apartmentId: stored.apartmentId,
+    );
+  }
+
+  Future<void> login({
+    required String email,
+    required String password,
+    required String deviceName,
+  }) async {
+    state = const AsyncLoading();
+    state = await AsyncValue.guard(() async {
+      final session = await ref.read(authRepositoryProvider).login(
+            email: email,
+            password: password,
+            deviceName: deviceName,
+          );
+      // Refresh completo con me() para obtener apartment_id
+      try {
+        final me = await ref.read(authRepositoryProvider).me();
+        return me;
+      } catch (_) {
+        return session.user;
+      }
+    });
+  }
+
+  Future<void> logout() async {
+    await ref.read(authRepositoryProvider).logout();
+    state = const AsyncData(null);
+  }
+
+  Future<void> refreshUser() async {
+    try {
+      final me = await ref.read(authRepositoryProvider).me();
+      state = AsyncData(me);
+    } catch (_) {}
+  }
+}

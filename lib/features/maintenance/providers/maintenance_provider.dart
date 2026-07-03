@@ -1,5 +1,4 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:image_picker/image_picker.dart';
 
 import '../data/maintenance_repository.dart';
 import '../models/maintenance_request.dart';
@@ -22,13 +21,10 @@ class MaintenanceRequestsNotifier
         () => ref.read(maintenanceRepositoryProvider).getMyRequests());
   }
 
-  Future<void> create(
-    Map<String, dynamic> data, {
-    List<XFile> photos = const [],
-  }) async {
+  Future<void> create(Map<String, dynamic> data) async {
     final request = await ref
         .read(maintenanceRepositoryProvider)
-        .createRequest(data, photos: photos);
+        .createRequest(data);
     state = AsyncData([request, ...?state.value]);
   }
 }

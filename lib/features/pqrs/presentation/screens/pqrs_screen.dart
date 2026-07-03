@@ -675,6 +675,9 @@ class _NewPqrsSheetState extends ConsumerState<_NewPqrsSheet> {
         'description': _descCtrl.text.trim(),
       });
       if (mounted) {
+        _subjectCtrl.clear();
+        _descCtrl.clear();
+        setState(() => _type = 'petition');
         Navigator.pop(context);
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(

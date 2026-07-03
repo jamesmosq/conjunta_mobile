@@ -32,7 +32,7 @@ class AreasRepository {
   }
 
   Future<List<Booking>> getMyBookings() async {
-    final response = await _dio.get('/my/bookings');
+    final response = await _dio.get('/area-bookings');
     final raw = response.data;
     final list = raw is Map ? (raw['data'] ?? raw) : raw;
     return (list as List)
@@ -41,8 +41,10 @@ class AreasRepository {
   }
 
   Future<Booking> createBooking(int areaId, Map<String, dynamic> data) async {
-    final response =
-        await _dio.post('/common-areas/$areaId/bookings', data: data);
+    final response = await _dio.post('/area-bookings', data: {
+      'common_area_id': areaId,
+      ...data,
+    });
     final raw = response.data;
     final json = raw is Map && raw.containsKey('data')
         ? raw['data'] as Map<String, dynamic>
@@ -51,7 +53,7 @@ class AreasRepository {
   }
 
   Future<void> cancelBooking(int id, String reason) async {
-    await _dio.post('/bookings/$id/cancel', data: {'reason': reason});
+    await _dio.post('/area-bookings/$id/cancel', data: {'reason': reason});
   }
 
   Future<List<Booking>> getAreaAvailability(

@@ -140,9 +140,8 @@ class _SurveyCard extends ConsumerWidget {
                       )
                     : OutlinedButton.icon(
                         icon: const Icon(Icons.check_circle_outline, size: 18),
-                        label: const Text('Ya respondiste · Ver resultados'),
-                        onPressed: () =>
-                            context.push('/surveys/${survey.id}/results'),
+                        label: const Text('Ya respondiste'),
+                        onPressed: null,
                       ),
               ),
             ],

@@ -61,10 +61,9 @@ class _RequestCard extends StatelessWidget {
   static final _dateFmt = DateFormat('dd/MM/yyyy', 'es');
 
   IconData get _typeIcon => switch (request.type) {
-        'plomeria' => Icons.water_drop_outlined,
-        'electricidad' => Icons.electrical_services_outlined,
-        'estructura' => Icons.foundation_outlined,
-        'gas' => Icons.local_fire_department_outlined,
+        'corrective' => Icons.build_outlined,
+        'preventive' => Icons.settings_outlined,
+        'improvement' => Icons.upgrade_outlined,
         _ => Icons.build_outlined,
       };
 

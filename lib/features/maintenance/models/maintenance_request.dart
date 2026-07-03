@@ -40,12 +40,10 @@ class MaintenanceRequest {
   String get urgencyLabel => urgency == 'urgent' ? 'Urgente' : 'Normal';
 
   String get typeLabel => switch (type) {
-        'plomeria' => 'Plomería',
-        'electricidad' => 'Electricidad',
-        'estructura' => 'Estructura',
-        'gas' => 'Gas',
-        'aseo' => 'Aseo',
-        _ => 'Otro',
+        'corrective' => 'Correctivo',
+        'preventive' => 'Preventivo',
+        'improvement' => 'Mejora',
+        _ => 'Correctivo',
       };
 }
 

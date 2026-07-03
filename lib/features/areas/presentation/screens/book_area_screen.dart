@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
 import '../../../../core/widgets/async_value_widget.dart';
+import '../../../auth/providers/auth_provider.dart';
 import '../../data/areas_repository.dart';
 import '../../providers/areas_provider.dart';
 
@@ -17,12 +18,21 @@ class BookAreaScreen extends ConsumerStatefulWidget {
 
 class _BookAreaScreenState extends ConsumerState<BookAreaScreen> {
   final _formKey = GlobalKey<FormState>();
+  final _attendeesCtrl = TextEditingController(text: '1');
+  final _notesCtrl = TextEditingController();
   DateTime _date = DateTime.now().add(const Duration(days: 1));
   TimeOfDay _startTime = const TimeOfDay(hour: 9, minute: 0);
   TimeOfDay _endTime = const TimeOfDay(hour: 11, minute: 0);
   bool _loading = false;
 
   final _dateFmt = DateFormat('dd/MM/yyyy', 'es');
+
+  @override
+  void dispose() {
+    _attendeesCtrl.dispose();
+    _notesCtrl.dispose();
+    super.dispose();
+  }
 
   Future<void> _pickDate() async {
     final picked = await showDatePicker(
@@ -63,12 +73,22 @@ class _BookAreaScreenState extends ConsumerState<BookAreaScreen> {
       );
       return;
     }
+    final apartmentId = ref.read(authStateProvider).value?.apartmentId;
+    if (apartmentId == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('No tienes un apartamento asignado.')),
+      );
+      return;
+    }
     setState(() => _loading = true);
     try {
       await ref.read(areasRepositoryProvider).createBooking(widget.areaId, {
+        'apartment_id': apartmentId,
         'date': _date.toIso8601String().substring(0, 10),
         'start_time': _formatTime(_startTime),
         'end_time': _formatTime(_endTime),
+        'attendees_count': int.tryParse(_attendeesCtrl.text) ?? 1,
+        if (_notesCtrl.text.trim().isNotEmpty) 'notes': _notesCtrl.text.trim(),
       });
       await ref.read(myBookingsProvider.notifier).refresh();
       if (mounted) {
@@ -161,6 +181,30 @@ class _BookAreaScreenState extends ConsumerState<BookAreaScreen> {
                   ),
                 ),
               ],
+            ),
+            const SizedBox(height: 16),
+            TextFormField(
+              controller: _attendeesCtrl,
+              decoration: const InputDecoration(
+                labelText: 'Número de asistentes *',
+                prefixIcon: Icon(Icons.people_outlined),
+              ),
+              keyboardType: TextInputType.number,
+              validator: (v) {
+                final n = int.tryParse(v ?? '');
+                if (n == null || n < 1) return 'Ingresa al menos 1 asistente';
+                return null;
+              },
+            ),
+            const SizedBox(height: 12),
+            TextFormField(
+              controller: _notesCtrl,
+              decoration: const InputDecoration(
+                labelText: 'Notas adicionales (opcional)',
+                prefixIcon: Icon(Icons.notes_outlined),
+              ),
+              maxLines: 2,
+              maxLength: 500,
             ),
             const SizedBox(height: 32),
             FilledButton.icon(

@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 
 import '../../../../core/widgets/async_value_widget.dart';
 import '../../../../core/widgets/status_chip.dart';
+import '../../../auth/providers/auth_provider.dart';
 import '../../models/package.dart';
 import '../../models/pre_authorization.dart';
 import '../../models/visit.dart';
@@ -15,6 +16,9 @@ class PorteriaScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final user = ref.watch(authStateProvider).value;
+    final isPortero = user?.isPortero ?? false;
+
     return DefaultTabController(
       length: 3,
       child: Scaffold(
@@ -28,11 +32,51 @@ class PorteriaScreen extends ConsumerWidget {
             ],
           ),
         ),
-        body: const TabBarView(
+        body: Column(
           children: [
-            _VisitsTab(),
-            _PreAuthTab(),
-            _PackagesTab(),
+            if (isPortero) const _RondasBanner(),
+            const Expanded(
+              child: TabBarView(
+                children: [
+                  _VisitsTab(),
+                  _PreAuthTab(),
+                  _PackagesTab(),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _RondasBanner extends StatelessWidget {
+  const _RondasBanner();
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: () => context.push('/patrol'),
+      child: Container(
+        width: double.infinity,
+        color: Colors.indigo.shade700,
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        child: const Row(
+          children: [
+            Icon(Icons.security, color: Colors.white),
+            SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                'Rondas de Vigilancia',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 15,
+                ),
+              ),
+            ),
+            Icon(Icons.chevron_right, color: Colors.white70),
           ],
         ),
       ),
@@ -128,15 +172,19 @@ class _PreAuthCard extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final fmt = DateFormat('dd/MM/yyyy', 'es');
+    final subtitle = _buildSubtitle(fmt);
     return Card(
       child: ListTile(
-        leading: const CircleAvatar(
-            child: Icon(Icons.verified_user_outlined)),
+        leading: CircleAvatar(
+          child: Icon(
+            auth.isVehicle
+                ? Icons.directions_car_outlined
+                : Icons.verified_user_outlined,
+          ),
+        ),
         title: Text(auth.visitorName,
             style: const TextStyle(fontWeight: FontWeight.w600)),
-        subtitle: Text(
-          'Válida: ${fmt.format(DateTime.parse(auth.validFrom))} – ${fmt.format(DateTime.parse(auth.validUntil))}',
-        ),
+        subtitle: Text(subtitle),
         trailing: IconButton(
           icon: const Icon(Icons.delete_outline, color: Colors.red),
           onPressed: () async {
@@ -169,6 +217,28 @@ class _PreAuthCard extends ConsumerWidget {
         ),
       ),
     );
+  }
+
+  String _buildSubtitle(DateFormat fmt) {
+    if (auth.isRecurring) {
+      final from = auth.allowedFrom ?? '';
+      final until = auth.allowedUntil ?? '';
+      return auth.arrivalModeLabel +
+          (from.isNotEmpty ? ' · $from – $until' : '');
+    }
+    if (auth.expectedAt != null) {
+      try {
+        final date = fmt.format(DateTime.parse(auth.expectedAt!).toLocal());
+        return '${auth.arrivalModeLabel} · $date';
+      } catch (_) {}
+    }
+    if (auth.expiresAt != null) {
+      try {
+        final date = fmt.format(DateTime.parse(auth.expiresAt!).toLocal());
+        return '${auth.arrivalModeLabel} · vence $date';
+      } catch (_) {}
+    }
+    return auth.arrivalModeLabel;
   }
 }
 

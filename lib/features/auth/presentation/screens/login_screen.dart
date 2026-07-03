@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -42,10 +43,33 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
     ref.listen(authStateProvider, (_, next) {
       if (next.hasError) {
+        final err = next.error;
+        String message;
+
+        if (err is DioException) {
+          if (err.type == DioExceptionType.connectionTimeout ||
+              err.type == DioExceptionType.receiveTimeout ||
+              err.type == DioExceptionType.connectionError) {
+            message = 'No se pudo conectar al servidor. Verifica tu conexión WiFi.';
+          } else if (err.response?.statusCode == 422) {
+            final errors = err.response?.data?['errors'];
+            if (errors is Map && errors['email'] is List) {
+              message = (errors['email'] as List).first as String;
+            } else {
+              message = 'Credenciales incorrectas.';
+            }
+          } else {
+            message = 'Error al iniciar sesión (${err.response?.statusCode ?? 'red'}).';
+          }
+        } else {
+          message = 'Credenciales incorrectas. Verifica tu correo y contraseña.';
+        }
+
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Credenciales incorrectas. Verifica tu correo y contraseña.'),
+            content: Text(message),
             backgroundColor: Theme.of(context).colorScheme.error,
+            duration: const Duration(seconds: 5),
           ),
         );
       }

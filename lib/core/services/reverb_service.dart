@@ -1,11 +1,8 @@
-import 'dart:convert';
-
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:http/http.dart' as http;
-import 'package:pusher_channels_flutter/pusher_channels_flutter.dart';
 
 import '../config/app_config.dart';
 import '../storage/secure_storage.dart';
+import 'pusher_client.dart';
 import '../../features/announcements/providers/announcements_provider.dart';
 import '../../features/pqrs/providers/pqrs_provider.dart';
 import '../../features/notifications/providers/notifications_provider.dart';
@@ -15,6 +12,8 @@ import '../../features/porteria/providers/porteria_provider.dart';
 import '../../features/areas/providers/areas_provider.dart';
 import '../../features/maintenance/providers/maintenance_provider.dart';
 import '../../features/contractor/providers/contractor_provider.dart';
+import '../../features/chat/models/chat_models.dart';
+import '../../features/chat/providers/chat_provider.dart';
 
 final reverbServiceProvider = Provider<ReverbService>((ref) {
   return ReverbService(ref);
@@ -24,7 +23,7 @@ class ReverbService {
   ReverbService(this._ref);
 
   final Ref _ref;
-  final _pusher = PusherChannelsFlutter.getInstance();
+  PusherWsClient? _client;
   bool _initialized = false;
 
   Future<void> initialize({
@@ -39,52 +38,29 @@ class ReverbService {
     if (token == null) return;
 
     try {
-      await _pusher.init(
-        apiKey: AppConfig.reverbKey,
-        cluster: AppConfig.reverbCluster,
-        useTLS: false,
+      _client = PusherWsClient(
+        wsUrl: AppConfig.reverbWsUrl,
+        authEndpoint: '${AppConfig.baseUrl}/broadcasting/auth',
+        bearerToken: token,
         onEvent: _onEvent,
-        onConnectionStateChange: (curr, prev) {},
-        onError: (message, code, e) {},
-        // Autenticador para canales privados — llama al endpoint de broadcasting
-        onAuthorizer: (channelName, socketId, options) async {
-          try {
-            final response = await http.post(
-              Uri.parse('${AppConfig.baseUrl}/broadcasting/auth'),
-              headers: {
-                'Authorization': 'Bearer $token',
-                'Content-Type': 'application/x-www-form-urlencoded',
-                'Accept': 'application/json',
-              },
-              body: {
-                'channel_name': channelName,
-                'socket_id': socketId,
-              },
-            );
-            if (response.statusCode == 200) {
-              return jsonDecode(response.body);
-            }
-          } catch (_) {}
-          return {};
-        },
       );
 
-      await _pusher.connect();
+      await _client!.connect();
       _initialized = true;
 
       if (tenantId != null) {
         if (role == 'copropietario' && apartmentId != null) {
-          await _subscribe('private-apto.$apartmentId');
+          await _client!.subscribe('private-apto.$apartmentId');
         }
         if (role == 'portero') {
-          await _subscribe('private-porteria.$tenantId');
+          await _client!.subscribe('private-porteria.$tenantId');
         }
         if (['administrador', 'auxiliar_contable', 'consejo',
             'revisor_fiscal'].contains(role)) {
-          await _subscribe('private-admin.$tenantId');
+          await _client!.subscribe('private-admin.$tenantId');
         }
         if (role == 'contratista') {
-          await _subscribe('private-contratista.$userId');
+          await _client!.subscribe('private-contratista.$userId');
         }
       }
     } catch (_) {
@@ -92,29 +68,69 @@ class ReverbService {
     }
   }
 
+  Future<void> subscribeChatThread(int conversationId) async {
+    if (!_initialized) return;
+    try {
+      await _client!.subscribe('private-chat.$conversationId');
+    } catch (_) {}
+  }
+
   Future<void> disconnect() async {
     if (!_initialized) return;
     try {
-      await _pusher.disconnect();
+      await _client?.disconnect();
     } catch (_) {}
+    _client = null;
     _initialized = false;
   }
 
-  Future<void> _subscribe(String channelName) async {
-    await _pusher.subscribe(channelName: channelName, onEvent: _onEvent);
-  }
+  void _handleChatEvent(
+    String channelName,
+    String eventName,
+    Map<String, dynamic> data,
+  ) {
+    final convIdStr = channelName.split('.').lastOrNull;
+    final convId = int.tryParse(convIdStr ?? '');
+    if (convId == null) return;
 
-  void _onEvent(PusherEvent event) {
-    switch (event.eventName) {
-      case 'visit.registered':
-        _ref.invalidate(visitsProvider);
-        if (event.data != null) {
+    switch (eventName) {
+      case 'message.sent':
+        _ref.invalidate(chatConversationsProvider);
+        try {
+          _ref
+              .read(chatThreadProvider(convId).notifier)
+              .receiveMessage(ChatMessage.fromReverbData(data));
+        } catch (_) {}
+      case 'messages.read':
+        _ref.invalidate(chatConversationsProvider);
+        final readByUserId = data['read_by_user_id'] as int?;
+        if (readByUserId != null) {
           try {
-            final data = jsonDecode(event.data!) as Map<String, dynamic>;
-            final accessEvent = AccessEvent.fromJson(data);
-            _ref.read(liveAccessProvider.notifier).notify(accessEvent);
+            _ref
+                .read(chatThreadProvider(convId).notifier)
+                .markAllRead(readByUserId);
           } catch (_) {}
         }
+    }
+  }
+
+  void _onEvent(
+    String channelName,
+    String eventName,
+    Map<String, dynamic> data,
+  ) {
+    if (channelName.startsWith('private-chat.')) {
+      _handleChatEvent(channelName, eventName, data);
+      return;
+    }
+
+    switch (eventName) {
+      case 'visit.registered':
+        _ref.invalidate(visitsProvider);
+        try {
+          final accessEvent = AccessEvent.fromJson(data);
+          _ref.read(liveAccessProvider.notifier).notify(accessEvent);
+        } catch (_) {}
       case 'package.arrived':
         _ref.invalidate(packagesProvider);
       case 'charge.added':

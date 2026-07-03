@@ -49,19 +49,33 @@ class _Body extends ConsumerWidget {
     final today = DateTime(now.year, now.month, now.day);
 
     PreAuthStatus status(PreAuthorization p) {
-      final from = _parseDate(p.validFrom);
-      final until = _parseDate(p.validUntil);
-      if (!p.isActive || until.isBefore(today)) return PreAuthStatus.expired;
-      if (from.isAfter(today)) return PreAuthStatus.upcoming;
+      if (!p.isActive) return PreAuthStatus.expired;
+      if (p.isValidNow) return PreAuthStatus.active;
+      final expires = _parseDate(p.expiresAt);
+      if (expires != null && expires.isBefore(today)) return PreAuthStatus.expired;
+      final expected = _parseDate(p.expectedAt);
+      if (expected != null && expected.isAfter(today)) return PreAuthStatus.upcoming;
       return PreAuthStatus.active;
     }
 
     final upcoming = list.where((p) => status(p) == PreAuthStatus.upcoming).toList()
-      ..sort((a, b) => _parseDate(a.validFrom).compareTo(_parseDate(b.validFrom)));
+      ..sort((a, b) {
+        final da = _parseDate(a.expectedAt) ?? DateTime(2000);
+        final db = _parseDate(b.expectedAt) ?? DateTime(2000);
+        return da.compareTo(db);
+      });
     final active = list.where((p) => status(p) == PreAuthStatus.active).toList()
-      ..sort((a, b) => _parseDate(a.validUntil).compareTo(_parseDate(b.validUntil)));
+      ..sort((a, b) {
+        final da = _parseDate(a.expiresAt) ?? DateTime(9999);
+        final db = _parseDate(b.expiresAt) ?? DateTime(9999);
+        return da.compareTo(db);
+      });
     final expired = list.where((p) => status(p) == PreAuthStatus.expired).toList()
-      ..sort((a, b) => _parseDate(b.validUntil).compareTo(_parseDate(a.validUntil)));
+      ..sort((a, b) {
+        final da = _parseDate(a.expiresAt) ?? DateTime(2000);
+        final db = _parseDate(b.expiresAt) ?? DateTime(2000);
+        return db.compareTo(da);
+      });
 
     if (list.isEmpty) {
       return _EmptyState(
@@ -111,11 +125,12 @@ class _Body extends ConsumerWidget {
     );
   }
 
-  DateTime _parseDate(String s) {
+  DateTime? _parseDate(String? s) {
+    if (s == null || s.isEmpty) return null;
     try {
-      return DateTime.parse(s);
+      return DateTime.parse(s).toLocal();
     } catch (_) {
-      return DateTime(2000);
+      return null;
     }
   }
 }
@@ -269,9 +284,9 @@ class _PreAuthCard extends ConsumerWidget {
                               fontSize: 15,
                             ),
                           ),
-                          if (auth.document != null)
+                          if (auth.documentNumber != null)
                             Text(
-                              '${auth.documentType ?? "Doc"}: ${auth.document}',
+                              'Doc: ${auth.documentNumber}',
                               style: TextStyle(
                                 fontSize: 12,
                                 color: cs.onSurfaceVariant,
@@ -288,33 +303,35 @@ class _PreAuthCard extends ConsumerWidget {
                 const SizedBox(height: 10),
                 Row(
                   children: [
-                    Icon(Icons.date_range_outlined,
-                        size: 14, color: cs.onSurfaceVariant),
-                    const SizedBox(width: 4),
-                    Text(
-                      '${fmt.format(_parseDate(auth.validFrom))} – ${fmt.format(_parseDate(auth.validUntil))}',
-                      style: TextStyle(
-                          fontSize: 12, color: cs.onSurfaceVariant),
+                    Icon(
+                      auth.isRecurring
+                          ? Icons.repeat_outlined
+                          : Icons.date_range_outlined,
+                      size: 14,
+                      color: cs.onSurfaceVariant,
                     ),
-                    const Spacer(),
+                    const SizedBox(width: 4),
+                    Expanded(
+                      child: Text(
+                        _dateLabel(fmt, auth),
+                        style: TextStyle(
+                            fontSize: 12, color: cs.onSurfaceVariant),
+                      ),
+                    ),
                     _RemainingDays(auth: auth, status: status),
                   ],
                 ),
-                if (auth.purpose != null && auth.purpose!.isNotEmpty) ...[
+                if (auth.relationType != null) ...[
                   const SizedBox(height: 6),
                   Row(
                     children: [
-                      Icon(Icons.info_outline,
+                      Icon(Icons.group_outlined,
                           size: 14, color: cs.onSurfaceVariant),
                       const SizedBox(width: 4),
-                      Expanded(
-                        child: Text(
-                          auth.purpose!,
-                          style: TextStyle(
-                              fontSize: 12, color: cs.onSurfaceVariant),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
+                      Text(
+                        auth.relationTypeLabel,
+                        style: TextStyle(
+                            fontSize: 12, color: cs.onSurfaceVariant),
                       ),
                     ],
                   ),
@@ -327,12 +344,30 @@ class _PreAuthCard extends ConsumerWidget {
     );
   }
 
-  DateTime _parseDate(String s) {
+  DateTime? _parseDate(String? s) {
+    if (s == null || s.isEmpty) return null;
     try {
-      return DateTime.parse(s);
+      return DateTime.parse(s).toLocal();
     } catch (_) {
-      return DateTime(2000);
+      return null;
     }
+  }
+
+  String _dateLabel(DateFormat fmt, PreAuthorization auth) {
+    if (auth.isRecurring) {
+      final from = auth.allowedFrom ?? '';
+      final until = auth.allowedUntil ?? '';
+      return 'Recurrente${from.isNotEmpty ? ' · $from – $until' : ''}';
+    }
+    if (auth.expectedAt != null) {
+      final d = _parseDate(auth.expectedAt);
+      if (d != null) return 'Esperado: ${fmt.format(d)}';
+    }
+    if (auth.expiresAt != null) {
+      final d = _parseDate(auth.expiresAt);
+      if (d != null) return 'Vence: ${fmt.format(d)}';
+    }
+    return auth.arrivalModeLabel;
   }
 
   Future<bool?> _confirmDelete(BuildContext context, String name) {
@@ -392,22 +427,26 @@ class _RemainingDays extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final today = DateTime.now();
-    if (status == PreAuthStatus.expired) {
+    if (status == PreAuthStatus.expired || auth.isRecurring) {
       return const SizedBox.shrink();
     }
 
-    DateTime target;
+    final today = DateTime.now();
+    final todayDate = DateTime(today.year, today.month, today.day);
+
+    DateTime? target;
     String prefix;
     if (status == PreAuthStatus.upcoming) {
-      target = _parseDate(auth.validFrom);
+      target = _parseDate(auth.expectedAt);
       prefix = 'Inicia en';
     } else {
-      target = _parseDate(auth.validUntil);
+      target = _parseDate(auth.expiresAt);
       prefix = 'Vence en';
     }
 
-    final days = target.difference(DateTime(today.year, today.month, today.day)).inDays;
+    if (target == null) return const SizedBox.shrink();
+
+    final days = target.difference(todayDate).inDays;
 
     final color = days <= 1
         ? Colors.red
@@ -425,11 +464,12 @@ class _RemainingDays extends StatelessWidget {
     );
   }
 
-  DateTime _parseDate(String s) {
+  DateTime? _parseDate(String? s) {
+    if (s == null || s.isEmpty) return null;
     try {
-      return DateTime.parse(s);
+      return DateTime.parse(s).toLocal();
     } catch (_) {
-      return DateTime(2000);
+      return null;
     }
   }
 }

@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../auth/providers/auth_provider.dart';
+import '../../../surveys/providers/surveys_provider.dart';
+import '../../../chat/providers/chat_provider.dart';
 
 class HomeScreen extends ConsumerWidget {
   const HomeScreen({super.key});
@@ -40,13 +42,23 @@ class HomeScreen extends ConsumerWidget {
         ],
       ),
       body: RefreshIndicator(
-        onRefresh: () async => ref.invalidate(authStateProvider),
+        onRefresh: () async {
+          ref.invalidate(authStateProvider);
+          await Future.wait([
+            ref.read(surveysProvider.notifier).refresh(),
+            ref.read(chatConversationsProvider.notifier).refresh(),
+          ]);
+        },
         child: ListView(
           padding: const EdgeInsets.all(16),
           children: [
             // Banner de bienvenida
             _WelcomeBanner(user: user),
-            const SizedBox(height: 20),
+            const SizedBox(height: 12),
+
+            // Banner de encuestas pendientes
+            _PendingSurveysBanner(),
+            const SizedBox(height: 8),
 
             // Acceso rápido
             Text(
@@ -146,12 +158,80 @@ class _WelcomeBanner extends StatelessWidget {
   }
 }
 
+// ── Banner encuestas pendientes ────────────────────────────────────────────────
+
+class _PendingSurveysBanner extends ConsumerWidget {
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final count = ref.watch(pendingSurveysCountProvider);
+    if (count == 0) return const SizedBox.shrink();
+
+    final colors = Theme.of(context).colorScheme;
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      decoration: BoxDecoration(
+        color: const Color(0xFF4F46E5).withValues(alpha: 0.10),
+        border: Border.all(color: const Color(0xFF4F46E5).withValues(alpha: 0.25)),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(6),
+            decoration: BoxDecoration(
+              color: const Color(0xFF4F46E5).withValues(alpha: 0.15),
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(Icons.poll_outlined,
+                size: 18, color: Color(0xFF4F46E5)),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  '$count encuesta${count != 1 ? 's' : ''} pendiente${count != 1 ? 's' : ''}',
+                  style: const TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    color: Color(0xFF4F46E5),
+                  ),
+                ),
+                Text(
+                  'Tu opinión es importante para el conjunto.',
+                  style: TextStyle(
+                    fontSize: 11,
+                    color: colors.onSurfaceVariant,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          TextButton(
+            style: TextButton.styleFrom(
+              foregroundColor: const Color(0xFF4F46E5),
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+              minimumSize: Size.zero,
+              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+            ),
+            onPressed: () => context.push('/surveys'),
+            child: const Text('Responder', style: TextStyle(fontSize: 12)),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class _QuickAccessGrid extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final items = [
       _QuickItem(Icons.door_front_door_outlined, 'Pre-Auth', '/porteria'),
-      _QuickItem(Icons.local_shipping_outlined, 'Paquetes', '/porteria'),
+      _QuickItem(Icons.qr_code_2_outlined, 'Invitar', '/qr-invitations/new'),
       _QuickItem(Icons.build_outlined, 'Reporte', '/maintenance/new'),
       _QuickItem(Icons.campaign_outlined, 'Avisos', '/announcements'),
     ];
@@ -195,9 +275,11 @@ class _QuickItem {
   final String route;
 }
 
-class _ServicesList extends StatelessWidget {
+class _ServicesList extends ConsumerWidget {
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final unreadChat = ref.watch(unreadChatCountProvider);
+
     final services = [
       _ServiceItem(
         icon: Icons.account_balance_wallet_outlined,
@@ -241,6 +323,28 @@ class _ServicesList extends StatelessWidget {
         route: '/pqrs',
         color: const Color(0xFFE91E63),
       ),
+      _ServiceItem(
+        icon: Icons.poll_outlined,
+        title: 'Encuestas',
+        subtitle: 'Participa en las encuestas del conjunto',
+        route: '/surveys',
+        color: const Color(0xFF4F46E5),
+      ),
+      _ServiceItem(
+        icon: Icons.qr_code_2_outlined,
+        title: 'Invitaciones QR',
+        subtitle: 'Genera QR de acceso para tus visitantes',
+        route: '/qr-invitations',
+        color: const Color(0xFF7B1FA2),
+      ),
+      _ServiceItem(
+        icon: Icons.chat_bubble_outline,
+        title: 'Chat con Administración',
+        subtitle: 'Mensajes directos al administrador',
+        route: '/chat',
+        color: const Color(0xFF00897B),
+        badge: unreadChat > 0 ? unreadChat : null,
+      ),
     ];
 
     return Column(
@@ -261,7 +365,31 @@ class _ServicesList extends StatelessWidget {
                     style: const TextStyle(fontWeight: FontWeight.w600)),
                 subtitle: Text(s.subtitle,
                     style: const TextStyle(fontSize: 12)),
-                trailing: const Icon(Icons.chevron_right_outlined),
+                trailing: s.badge != null
+                    ? Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 8, vertical: 3),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF00897B),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Text(
+                              '${s.badge}',
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 12,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 4),
+                          const Icon(Icons.chevron_right_outlined),
+                        ],
+                      )
+                    : const Icon(Icons.chevron_right_outlined),
                 onTap: () => context.push(s.route),
               ),
             ),
@@ -278,10 +406,12 @@ class _ServiceItem {
     required this.subtitle,
     required this.route,
     required this.color,
+    this.badge,
   });
   final IconData icon;
   final String title;
   final String subtitle;
   final String route;
   final Color color;
+  final int? badge;
 }

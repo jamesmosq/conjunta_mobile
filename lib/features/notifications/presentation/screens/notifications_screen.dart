@@ -95,7 +95,7 @@ class _NotificationItem extends ConsumerWidget {
         if (!notif.isRead) {
           ref.read(notificationsProvider.notifier).markRead(notif.id);
         }
-        _showDetail(context, notif);
+        _showDetail(context, ref, notif);
       },
       child: Container(
         color: notif.isRead ? null : cs.primary.withValues(alpha: 0.05),
@@ -166,7 +166,7 @@ class _NotificationItem extends ConsumerWidget {
     );
   }
 
-  void _showDetail(BuildContext context, UserNotification notif) {
+  void _showDetail(BuildContext context, WidgetRef ref, UserNotification notif) {
     final cachedRequests =
         ref.read(maintenanceRequestsProvider).value;
     final (route, requestExtra) = FcmService.resolveRoute(

@@ -48,6 +48,26 @@ import '../../features/contractor/presentation/screens/work_orders_screen.dart';
 import '../../features/contractor/presentation/screens/work_order_detail_screen.dart';
 import '../../features/contractor/models/work_order.dart';
 
+// Encuestas (RF-ENC)
+import '../../features/surveys/presentation/screens/surveys_screen.dart';
+import '../../features/surveys/presentation/screens/survey_answer_screen.dart';
+
+// Chat (RF-CHT)
+import '../../features/chat/presentation/screens/conversations_screen.dart';
+import '../../features/chat/presentation/screens/chat_thread_screen.dart';
+
+// QR Invitaciones (RF-QRI)
+import '../../features/qr_invitation/models/visit_qr_code.dart';
+import '../../features/qr_invitation/presentation/screens/qr_history_screen.dart';
+import '../../features/qr_invitation/presentation/screens/new_qr_screen.dart';
+import '../../features/qr_invitation/presentation/screens/qr_detail_screen.dart';
+
+// Rondas (RF-MRD)
+import '../../features/patrol/presentation/screens/patrol_screen.dart';
+import '../../features/patrol/presentation/screens/active_patrol_screen.dart';
+import '../../features/patrol/presentation/screens/qr_scan_screen.dart';
+import '../../features/patrol/presentation/screens/patrol_incident_form.dart';
+
 import '../config/app_config.dart';
 import '../widgets/app_shell.dart';
 
@@ -190,6 +210,92 @@ final routerProvider = Provider<GoRouter>((ref) {
           ),
         ],
       ),
+      // Encuestas (RF-ENC)
+      GoRoute(
+        path: '/surveys',
+        builder: (_, __) => const SurveysScreen(),
+      ),
+      GoRoute(
+        path: '/surveys/:id',
+        builder: (context, state) {
+          final surveyId =
+              int.tryParse(state.pathParameters['id'] ?? '') ?? 0;
+          return SurveyAnswerScreen(surveyId: surveyId);
+        },
+      ),
+
+      // QR Invitaciones (RF-QRI) — copropietario
+      GoRoute(
+        path: '/qr-invitations',
+        builder: (_, __) => const QrHistoryScreen(),
+      ),
+      GoRoute(
+        path: '/qr-invitations/new',
+        builder: (_, __) => const NewQrScreen(),
+      ),
+      GoRoute(
+        path: '/qr-invitations/:id',
+        builder: (context, state) {
+          final qr = state.extra as VisitQrCode?;
+          if (qr == null) return const QrHistoryScreen();
+          return QrDetailScreen(qr: qr);
+        },
+      ),
+
+      // Chat (RF-CHT) — copropietario ↔ administración
+      GoRoute(
+        path: '/chat',
+        builder: (_, __) => const ConversationsScreen(),
+      ),
+      GoRoute(
+        path: '/chat/:id',
+        builder: (context, state) {
+          final conversationId =
+              int.tryParse(state.pathParameters['id'] ?? '') ?? 0;
+          final extra = state.extra as Map<String, dynamic>?;
+          final contraparteName =
+              extra?['name'] as String? ?? 'Administrador';
+          return ChatThreadScreen(
+            conversationId: conversationId,
+            contraparteName: contraparteName,
+          );
+        },
+      ),
+
+      // Rondas (RF-MRD) — portero
+      GoRoute(
+        path: '/patrol',
+        builder: (_, __) => const PatrolScreen(),
+      ),
+      GoRoute(
+        path: '/patrol/active/:sessionId',
+        builder: (context, state) {
+          final sessionId =
+              int.tryParse(state.pathParameters['sessionId'] ?? '') ?? 0;
+          return ActivePatrolScreen(sessionId: sessionId);
+        },
+      ),
+      GoRoute(
+        path: '/patrol/scan/:sessionId',
+        builder: (context, state) {
+          final sessionId =
+              int.tryParse(state.pathParameters['sessionId'] ?? '') ?? 0;
+          return QrScanScreen(sessionId: sessionId);
+        },
+      ),
+      GoRoute(
+        path: '/patrol/incident/:sessionId',
+        builder: (context, state) {
+          final sessionId =
+              int.tryParse(state.pathParameters['sessionId'] ?? '') ?? 0;
+          final checkpointId = state.extra as int?;
+          return PatrolIncidentForm(
+            sessionId: sessionId,
+            checkpointId: checkpointId,
+          );
+        },
+      ),
+
       GoRoute(
         path: '/profile',
         builder: (_, __) => const ProfileScreen(),

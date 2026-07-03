@@ -167,6 +167,30 @@ class FcmService {
       case 'assembly_convoked':
         router.push('/home');
 
+      // Chat (RF-CHT)
+      case 'chat_message':
+        final convId = _parseInt(data['conversation_id']);
+        if (convId != null) {
+          router.push(
+            '/chat/$convId',
+            extra: {'name': data['sender_name'] as String? ?? 'Administrador'},
+          );
+        } else {
+          router.push('/chat');
+        }
+
+      // Encuestas (RF-ENC)
+      case 'survey_published':
+        final surveyId = _parseInt(data['survey_id']);
+        if (surveyId != null) {
+          router.push('/surveys/$surveyId');
+        } else {
+          router.push('/surveys');
+        }
+
+      case 'survey_closing_reminder':
+        router.push('/surveys');
+
       default:
         router.push('/notifications');
     }
@@ -236,6 +260,14 @@ class FcmService {
         return ('/contractor/orders', null);
       case 'assembly_convoked':
         return ('/home', null);
+      case 'chat_message':
+        final convId = _parseInt(data['conversation_id']);
+        return (convId != null ? '/chat/$convId' : '/chat', null);
+      case 'survey_published':
+        final surveyId = _parseInt(data['survey_id']);
+        return (surveyId != null ? '/surveys/$surveyId' : '/surveys', null);
+      case 'survey_closing_reminder':
+        return ('/surveys', null);
       default:
         return ('/notifications', null);
     }

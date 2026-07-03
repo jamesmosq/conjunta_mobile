@@ -17,12 +17,15 @@ class CommonArea {
         name: json['name'] as String? ?? '',
         description: json['description'] as String?,
         capacity: json['capacity'] as int?,
-        openTime: json['open_time'] as String?,
-        closeTime: json['close_time'] as String?,
+        openTime: json['opening_time'] as String? ?? json['open_time'] as String?,
+        closeTime: json['closing_time'] as String? ?? json['close_time'] as String?,
         advanceDays: json['advance_days'] as int?,
-        feePerHour: (json['fee_per_hour'] as num?)?.toDouble(),
+        feePerHour: (json['cost_per_booking'] as num?)?.toDouble() ??
+            (json['fee_per_hour'] as num?)?.toDouble(),
         rules: json['rules'] as String?,
-        isActive: json['is_active'] as bool? ?? true,
+        isActive: json['is_active'] as bool? ??
+            ((json['booking_enabled'] as bool? ?? true) &&
+                (json['status'] as String? ?? 'active') == 'active'),
       );
 
   final int id;

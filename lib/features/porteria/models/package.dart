@@ -10,9 +10,9 @@ class Package {
   factory Package.fromJson(Map<String, dynamic> json) => Package(
         id: json['id'] as int,
         description: json['description'] as String?,
-        arrivedAt: json['arrived_at'] as String? ?? '',
+        arrivedAt: json['received_at'] as String? ?? json['arrived_at'] as String? ?? '',
         deliveredAt: json['delivered_at'] as String?,
-        deliveredToName: json['delivered_to_name'] as String?,
+        deliveredToName: json['delivered_to'] as String? ?? json['delivered_to_name'] as String?,
       );
 
   final int id;

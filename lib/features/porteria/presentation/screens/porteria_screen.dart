@@ -279,7 +279,9 @@ class _PackageCard extends StatelessWidget {
         leading: const CircleAvatar(child: Icon(Icons.inventory_2_outlined)),
         title: Text(package.description ?? 'Paquete #${package.id}',
             style: const TextStyle(fontWeight: FontWeight.w600)),
-        subtitle: Text('Llegó: ${fmt.format(DateTime.parse(package.arrivedAt))}'),
+        subtitle: Text(package.arrivedAt.isNotEmpty
+            ? 'Llegó: ${fmt.format(DateTime.parse(package.arrivedAt))}'
+            : 'Paquete pendiente de entrega'),
         trailing: package.isPending
             ? const StatusChip(label: 'Pendiente', color: Colors.orange)
             : const StatusChip(label: 'Entregado', color: Colors.green),

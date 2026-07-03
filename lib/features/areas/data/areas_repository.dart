@@ -62,8 +62,19 @@ class AreasRepository {
         .get('/common-areas/$areaId/availability', queryParameters: {'date': date});
     final raw = response.data;
     final list = raw is Map ? (raw['data'] ?? raw) : raw;
+    // Backend returns slot objects {startStr, endStr, available, reason}.
+    // We expose only the occupied slots as Booking-like objects for the UI.
     return (list as List)
-        .map((e) => Booking.fromJson(e as Map<String, dynamic>))
+        .cast<Map<String, dynamic>>()
+        .where((slot) => slot['available'] == false)
+        .map((slot) => Booking(
+              id: 0,
+              commonAreaId: areaId,
+              date: date,
+              startTime: slot['startStr'] as String? ?? '',
+              endTime: slot['endStr'] as String? ?? '',
+              status: 'occupied',
+            ))
         .toList();
   }
 }

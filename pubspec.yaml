@@ -1,6 +1,6 @@
 name: cojunta_mobile
 description: Sistema de Administración de Conjunto Residencial — App Móvil
-version: 1.0.0+1
+version: 1.5.0+5
 publish_to: none
 
 environment:
@@ -61,6 +61,24 @@ dev_dependencies:
   riverpod_lint: ^2.6.4
   freezed: ^3.0.0
   json_serializable: ^6.9.4
+  flutter_launcher_icons: ^0.14.3
+
+flutter_launcher_icons:
+  android: "launcher_icon"
+  ios: true
+  image_path: "assets/icon/app_icon.png"
+  min_sdk_android: 21
+  adaptive_icon_background: "#0A1641"
+  adaptive_icon_foreground: "assets/icon/app_icon.png"
+  web:
+    generate: false
+  windows:
+    generate: false
+  macos:
+    generate: false
 
 flutter:
   uses-material-design: true
+
+  assets:
+    - assets/icon/

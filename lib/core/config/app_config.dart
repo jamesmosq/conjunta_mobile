@@ -5,6 +5,11 @@ class AppConfig {
 
   static const String baseUrl = '$_prodHost/api/v1';
 
+  /// El endpoint de autorización de canales privados de Reverb lo registra
+  /// Laravel en la raíz (`/broadcasting/auth`, igual que resources/js/app.js
+  /// para el panel web), NO bajo el prefijo /api/v1 de las demás rutas.
+  static const String broadcastingAuthUrl = '$_prodHost/broadcasting/auth';
+
   static const int connectTimeoutMs = 15000;
   static const int receiveTimeoutMs = 30000;
 

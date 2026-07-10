@@ -40,7 +40,7 @@ class ReverbService {
     try {
       _client = PusherWsClient(
         wsUrl: AppConfig.reverbWsUrl,
-        authEndpoint: '${AppConfig.baseUrl}/broadcasting/auth',
+        authEndpoint: AppConfig.broadcastingAuthUrl,
         bearerToken: token,
         onEvent: _onEvent,
       );

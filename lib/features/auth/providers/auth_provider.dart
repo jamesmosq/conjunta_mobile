@@ -50,6 +50,13 @@ class AuthNotifier extends AsyncNotifier<AuthUser?> {
     state = const AsyncData(null);
   }
 
+  /// Limpia el estado local sin llamar al backend — para cuando el token
+  /// ya se sabe inválido (401 detectado por el interceptor global) y un
+  /// POST /auth/logout solo fallaría con el mismo error.
+  void forceLogout() {
+    state = const AsyncData(null);
+  }
+
   Future<void> refreshUser() async {
     try {
       final me = await ref.read(authRepositoryProvider).me();

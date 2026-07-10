@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'core/network/api_client.dart';
 import 'core/router/app_router.dart';
 import 'core/services/fcm_service.dart';
 import 'core/services/reverb_service.dart';
@@ -30,6 +31,14 @@ class _AppState extends ConsumerState<App> {
         } else if (user == null && _servicesInitialized) {
           _servicesInitialized = false;
           _disconnectServices();
+        }
+      });
+      // El backend respondió 401 en algún request: el token ya no sirve.
+      // Se limpia el estado de auth para que GoRouter redirija a /login,
+      // en vez de dejar al usuario atascado en una pantalla de error.
+      ref.listenManual(unauthorizedEventProvider, (prev, next) {
+        if (prev != null && next != prev) {
+          ref.read(authStateProvider.notifier).forceLogout();
         }
       });
     });

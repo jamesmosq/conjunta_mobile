@@ -1,3 +1,5 @@
+import '../../../core/utils/json_parsing.dart';
+
 class WorkOrderMaintenanceInfo {
   const WorkOrderMaintenanceInfo({
     required this.type,
@@ -49,10 +51,10 @@ class WorkOrderMaterial {
       WorkOrderMaterial(
         id: json['id'] as int?,
         description: json['description'] as String? ?? '',
-        quantity: (json['quantity'] as num?)?.toDouble() ?? 1,
+        quantity: parseDouble(json['quantity']) ?? 1,
         unit: json['unit'] as String? ?? 'un',
-        unitCost: (json['unit_cost'] as num?)?.toDouble(),
-        totalCost: (json['total_cost'] as num?)?.toDouble(),
+        unitCost: parseDouble(json['unit_cost']),
+        totalCost: parseDouble(json['total_cost']),
       );
 
   final int? id;

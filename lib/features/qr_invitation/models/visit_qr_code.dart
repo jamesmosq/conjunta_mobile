@@ -30,6 +30,7 @@ class VisitQrCode {
     required this.id,
     required this.uuid,
     required this.qrUrl,
+    this.codigo,
     required this.visitante,
     required this.apartamentoId,
     required this.validoDesde,
@@ -44,6 +45,9 @@ class VisitQrCode {
   final int id;
   final String uuid;
   final String qrUrl;
+  /// Código corto de 4 dígitos — alternativa al QR para que el portero
+  /// registre la visita manualmente si el visitante no puede mostrar el QR.
+  final String? codigo;
   final QrVisitante visitante;
   final int apartamentoId;
   final String validoDesde;
@@ -65,6 +69,7 @@ class VisitQrCode {
       id: json['id'] as int,
       uuid: json['uuid'] as String? ?? '',
       qrUrl: json['qr_url'] as String? ?? '',
+      codigo: json['codigo'] as String?,
       visitante: QrVisitante.fromJson(
           json['visitante'] as Map<String, dynamic>? ?? {}),
       apartamentoId: json['apartamento_id'] as int? ?? 0,

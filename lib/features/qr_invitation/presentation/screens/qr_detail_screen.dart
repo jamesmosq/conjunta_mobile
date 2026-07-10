@@ -52,6 +52,32 @@ class QrDetailScreen extends ConsumerWidget {
               style: TextStyle(
                   fontSize: 13, color: Colors.grey.shade500),
             ),
+            if (current.codigo != null && current.codigo!.isNotEmpty) ...[
+              const SizedBox(height: 16),
+              Text(
+                'o dicta este código en portería',
+                style: TextStyle(fontSize: 12, color: Colors.grey.shade500),
+              ),
+              const SizedBox(height: 6),
+              Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                decoration: BoxDecoration(
+                  color: Colors.deepPurple.shade50,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.deepPurple.shade100),
+                ),
+                child: Text(
+                  current.codigo!,
+                  style: TextStyle(
+                    fontSize: 22,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: 6,
+                    color: Colors.deepPurple.shade800,
+                  ),
+                ),
+              ),
+            ],
             const SizedBox(height: 24),
 
             // Visitor info card

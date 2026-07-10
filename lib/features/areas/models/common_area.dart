@@ -1,3 +1,5 @@
+import '../../../core/utils/json_parsing.dart';
+
 class CommonArea {
   const CommonArea({
     required this.id,
@@ -20,8 +22,8 @@ class CommonArea {
         openTime: json['opening_time'] as String? ?? json['open_time'] as String?,
         closeTime: json['closing_time'] as String? ?? json['close_time'] as String?,
         advanceDays: json['advance_days'] as int?,
-        feePerHour: (json['cost_per_booking'] as num?)?.toDouble() ??
-            (json['fee_per_hour'] as num?)?.toDouble(),
+        feePerHour: parseDouble(json['cost_per_booking']) ??
+            parseDouble(json['fee_per_hour']),
         rules: json['rules'] as String?,
         isActive: json['is_active'] as bool? ??
             ((json['booking_enabled'] as bool? ?? true) &&

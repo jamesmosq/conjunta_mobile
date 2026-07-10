@@ -14,7 +14,7 @@ class PqrsRepository {
   final Dio _dio;
 
   Future<List<PqrsItem>> getMyPqrs() async {
-    final response = await _dio.get('/my/pqrs');
+    final response = await _dio.get('/pqrs');
     final raw = response.data;
     final list = raw is Map ? (raw['data'] ?? raw) : raw;
     return (list as List)

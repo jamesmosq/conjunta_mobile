@@ -22,6 +22,13 @@ class VisitsNotifier extends AsyncNotifier<List<Visit>> {
     state = await AsyncValue.guard(
         () => ref.read(porteriaRepositoryProvider).getVisits());
   }
+
+  Future<void> markExit(int id) async {
+    final updated = await ref.read(porteriaRepositoryProvider).exitVisit(id);
+    state = AsyncData([
+      for (final v in state.value ?? []) if (v.id == id) updated else v,
+    ]);
+  }
 }
 
 // ── Pre-Authorizations ──────────────────────────────────────────────────────
@@ -180,5 +187,27 @@ class PackagesNotifier extends AsyncNotifier<List<Package>> {
     state = const AsyncLoading();
     state = await AsyncValue.guard(
         () => ref.read(porteriaRepositoryProvider).getPackages());
+  }
+
+  Future<void> deliver(int id, String deliveredTo) async {
+    final updated = await ref
+        .read(porteriaRepositoryProvider)
+        .deliverPackage(id, deliveredTo);
+    state = AsyncData([
+      for (final p in state.value ?? []) if (p.id == id) updated else p,
+    ]);
+  }
+
+  Future<void> create({
+    required int apartmentId,
+    required String description,
+    String? sender,
+  }) async {
+    final created = await ref.read(porteriaRepositoryProvider).createPackage(
+          apartmentId: apartmentId,
+          description: description,
+          sender: sender,
+        );
+    state = AsyncData([created, ...state.value ?? []]);
   }
 }

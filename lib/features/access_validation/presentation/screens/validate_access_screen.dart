@@ -14,11 +14,14 @@ class ValidateAccessScreen extends ConsumerStatefulWidget {
       _ValidateAccessScreenState();
 }
 
+enum _Mode { scan, code, exit }
+
 class _ValidateAccessScreenState extends ConsumerState<ValidateAccessScreen> {
   final MobileScannerController _controller = MobileScannerController();
   final _codeController = TextEditingController();
+  final _exitCodeController = TextEditingController();
 
-  bool _scanMode = true;
+  _Mode _mode = _Mode.scan;
   bool _loading = false;
   QrPreview? _preview;
   String? _error;
@@ -33,6 +36,7 @@ class _ValidateAccessScreenState extends ConsumerState<ValidateAccessScreen> {
   void dispose() {
     _controller.dispose();
     _codeController.dispose();
+    _exitCodeController.dispose();
     super.dispose();
   }
 
@@ -42,7 +46,7 @@ class _ValidateAccessScreenState extends ConsumerState<ValidateAccessScreen> {
       appBar: AppBar(
         title: const Text('Validar acceso'),
         actions: [
-          if (_scanMode && _preview == null)
+          if (_mode == _Mode.scan && _preview == null)
             IconButton(
               icon: const Icon(Icons.flash_on),
               onPressed: _controller.toggleTorch,
@@ -58,22 +62,27 @@ class _ValidateAccessScreenState extends ConsumerState<ValidateAccessScreen> {
       children: [
         Padding(
           padding: const EdgeInsets.all(16),
-          child: SegmentedButton<bool>(
+          child: SegmentedButton<_Mode>(
             segments: const [
               ButtonSegment(
-                value: true,
+                value: _Mode.scan,
                 icon: Icon(Icons.qr_code_scanner),
-                label: Text('Escanear QR'),
+                label: Text('Escanear'),
               ),
               ButtonSegment(
-                value: false,
+                value: _Mode.code,
                 icon: Icon(Icons.dialpad),
                 label: Text('Código'),
               ),
+              ButtonSegment(
+                value: _Mode.exit,
+                icon: Icon(Icons.logout),
+                label: Text('Salida'),
+              ),
             ],
-            selected: {_scanMode},
+            selected: {_mode},
             onSelectionChanged: (selection) => setState(() {
-              _scanMode = selection.first;
+              _mode = selection.first;
               _error = null;
             }),
           ),
@@ -85,7 +94,13 @@ class _ValidateAccessScreenState extends ConsumerState<ValidateAccessScreen> {
                 style: const TextStyle(color: Colors.red),
                 textAlign: TextAlign.center),
           ),
-        Expanded(child: _scanMode ? _buildScanner() : _buildCodeForm()),
+        Expanded(
+          child: switch (_mode) {
+            _Mode.scan => _buildScanner(),
+            _Mode.code => _buildCodeForm(),
+            _Mode.exit => _buildExitForm(),
+          },
+        ),
       ],
     );
   }
@@ -166,6 +181,50 @@ class _ValidateAccessScreenState extends ConsumerState<ValidateAccessScreen> {
                     child: CircularProgressIndicator(strokeWidth: 2))
                 : const Icon(Icons.search),
             label: const Text('Consultar'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildExitForm() {
+    return Padding(
+      padding: const EdgeInsets.all(24),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          const Icon(Icons.logout, size: 48, color: Colors.orange),
+          const SizedBox(height: 12),
+          const Text(
+            'Registra la salida con el mismo código usado al ingresar',
+            textAlign: TextAlign.center,
+            style: TextStyle(color: Colors.grey),
+          ),
+          const SizedBox(height: 16),
+          TextField(
+            controller: _exitCodeController,
+            keyboardType: TextInputType.number,
+            maxLength: 4,
+            textAlign: TextAlign.center,
+            style: const TextStyle(
+                fontSize: 32, letterSpacing: 8, fontWeight: FontWeight.bold),
+            decoration: const InputDecoration(
+              counterText: '',
+              labelText: 'Código de 4 dígitos',
+              border: OutlineInputBorder(),
+            ),
+          ),
+          const SizedBox(height: 16),
+          FilledButton.icon(
+            onPressed: _loading ? null : _registerExit,
+            icon: _loading
+                ? const SizedBox(
+                    width: 16,
+                    height: 16,
+                    child: CircularProgressIndicator(strokeWidth: 2))
+                : const Icon(Icons.logout),
+            label: const Text('Registrar salida'),
+            style: FilledButton.styleFrom(backgroundColor: Colors.orange.shade700),
           ),
         ],
       ),
@@ -347,6 +406,37 @@ class _ValidateAccessScreenState extends ConsumerState<ValidateAccessScreen> {
     }
   }
 
+  Future<void> _registerExit() async {
+    final code = _exitCodeController.text.trim();
+    if (code.length != 4) {
+      setState(() => _error = 'Ingresa los 4 dígitos del código.');
+      return;
+    }
+    setState(() {
+      _loading = true;
+      _error = null;
+    });
+    try {
+      final name = await ref
+          .read(accessValidationRepositoryProvider)
+          .exitByCode(code);
+      if (!mounted) return;
+      _exitCodeController.clear();
+      setState(() => _loading = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Salida registrada — $name.'),
+          backgroundColor: Colors.green,
+        ),
+      );
+    } catch (e) {
+      setState(() {
+        _loading = false;
+        _error = _friendlyError(e);
+      });
+    }
+  }
+
   void _resetToInput() {
     _codeController.clear();
     _pendingUuid = null;
@@ -357,7 +447,7 @@ class _ValidateAccessScreenState extends ConsumerState<ValidateAccessScreen> {
       _loading = false;
       _error = null;
     });
-    if (_scanMode) _controller.start();
+    if (_mode == _Mode.scan) _controller.start();
   }
 
   String _friendlyError(Object e) {

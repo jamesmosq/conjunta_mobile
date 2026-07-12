@@ -71,6 +71,17 @@ import '../../features/patrol/presentation/screens/patrol_incident_form.dart';
 // Validar acceso (RF-QRI) — portero
 import '../../features/access_validation/presentation/screens/validate_access_screen.dart';
 
+// Reportar incidente, Parqueaderos, No autorizados — portero
+import '../../features/shift_incidents/presentation/screens/report_incident_screen.dart';
+import '../../features/parking/presentation/screens/parking_screen.dart';
+import '../../features/blacklist/presentation/screens/blacklist_screen.dart';
+
+// Registrar entrada manual — portero
+import '../../features/manual_visit/presentation/screens/register_visit_screen.dart';
+
+// Parqueadero propio — copropietario
+import '../../features/parking/presentation/screens/my_parking_screen.dart';
+
 import '../config/app_config.dart';
 import '../widgets/app_shell.dart';
 
@@ -336,6 +347,28 @@ final routerProvider = Provider<GoRouter>((ref) {
             ),
           ]),
         ],
+      ),
+
+      // Acceso rápido del portero — pushed sobre el shell
+      GoRoute(
+        path: '/shift-incidents/new',
+        builder: (_, __) => const ReportIncidentScreen(),
+      ),
+      GoRoute(
+        path: '/parking',
+        builder: (_, __) => const ParkingScreen(),
+      ),
+      GoRoute(
+        path: '/blacklist',
+        builder: (_, __) => const BlacklistScreen(),
+      ),
+      GoRoute(
+        path: '/visits/new',
+        builder: (_, __) => const RegisterVisitScreen(),
+      ),
+      GoRoute(
+        path: '/my-parking',
+        builder: (_, __) => const MyParkingScreen(),
       ),
 
       // ── Shell contratista (bottom nav 2 tabs) ─────────────────────────

@@ -234,36 +234,42 @@ class _QuickAccessGrid extends ConsumerWidget {
       _QuickItem(Icons.qr_code_2_outlined, 'Invitar', '/qr-invitations/new'),
       _QuickItem(Icons.build_outlined, 'Reporte', '/maintenance/new'),
       _QuickItem(Icons.campaign_outlined, 'Avisos', '/announcements'),
+      _QuickItem(Icons.local_parking_outlined, 'Parqueadero', '/my-parking'),
     ];
 
-    return Row(
-      children: items
-          .map(
-            (item) => Expanded(
-              child: GestureDetector(
-                onTap: () => context.push(item.route),
-                child: Card(
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    child: Column(
-                      children: [
-                        Icon(item.icon,
-                            color: Theme.of(context).colorScheme.primary,
-                            size: 28),
-                        const SizedBox(height: 6),
-                        Text(
-                          item.label,
-                          style: Theme.of(context).textTheme.labelSmall,
-                          textAlign: TextAlign.center,
-                        ),
-                      ],
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      child: Row(
+        children: items
+            .map(
+              (item) => SizedBox(
+                width: 84,
+                child: GestureDetector(
+                  onTap: () => context.push(item.route),
+                  child: Card(
+                    margin: const EdgeInsets.only(right: 8),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      child: Column(
+                        children: [
+                          Icon(item.icon,
+                              color: Theme.of(context).colorScheme.primary,
+                              size: 28),
+                          const SizedBox(height: 6),
+                          Text(
+                            item.label,
+                            style: Theme.of(context).textTheme.labelSmall,
+                            textAlign: TextAlign.center,
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                 ),
               ),
-            ),
-          )
-          .toList(),
+            )
+            .toList(),
+      ),
     );
   }
 }

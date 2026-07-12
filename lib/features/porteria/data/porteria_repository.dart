@@ -76,4 +76,36 @@ class PorteriaRepository {
         .map((e) => Package.fromJson(e as Map<String, dynamic>))
         .toList();
   }
+
+  Future<Package> deliverPackage(int id, String deliveredTo) async {
+    final response = await _dio.post(
+      '/packages/$id/deliver',
+      data: {'delivered_to': deliveredTo},
+    );
+    final raw = response.data as Map<String, dynamic>;
+    final data = raw['data'] as Map<String, dynamic>? ?? raw;
+    return Package.fromJson(data);
+  }
+
+  Future<Package> createPackage({
+    required int apartmentId,
+    required String description,
+    String? sender,
+  }) async {
+    final response = await _dio.post('/packages', data: {
+      'apartment_id': apartmentId,
+      'description': description,
+      if (sender != null && sender.isNotEmpty) 'sender': sender,
+    });
+    final raw = response.data as Map<String, dynamic>;
+    final data = raw['data'] as Map<String, dynamic>? ?? raw;
+    return Package.fromJson(data);
+  }
+
+  Future<Visit> exitVisit(int visitId) async {
+    final response = await _dio.post('/visits/$visitId/exit');
+    final raw = response.data as Map<String, dynamic>;
+    final data = raw['data'] as Map<String, dynamic>? ?? raw;
+    return Visit.fromJson(data);
+  }
 }

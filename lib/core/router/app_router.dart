@@ -68,6 +68,9 @@ import '../../features/patrol/presentation/screens/active_patrol_screen.dart';
 import '../../features/patrol/presentation/screens/qr_scan_screen.dart';
 import '../../features/patrol/presentation/screens/patrol_incident_form.dart';
 
+// Validar acceso (RF-QRI) — portero
+import '../../features/access_validation/presentation/screens/validate_access_screen.dart';
+
 import '../config/app_config.dart';
 import '../widgets/app_shell.dart';
 
@@ -89,6 +92,7 @@ final routerProvider = Provider<GoRouter>((ref) {
       if (!isAuthenticated && !isPublic) return '/login';
       if (isAuthenticated && isPublic) {
         if (user.isContratista) return '/contractor/orders';
+        if (user.isPortero) return '/porteria-home';
         return '/home';
       }
       return null;
@@ -307,6 +311,31 @@ final routerProvider = Provider<GoRouter>((ref) {
           if (profile == null) return const ProfileScreen();
           return EditProfileScreen(profile: profile);
         },
+      ),
+
+      // ── Shell portero (bottom nav 3 tabs) ─────────────────────────────
+      StatefulShellRoute.indexedStack(
+        builder: (_, __, shell) => PorteroShell(navigationShell: shell),
+        branches: [
+          StatefulShellBranch(routes: [
+            GoRoute(
+              path: '/porteria-home',
+              builder: (_, __) => const PorteriaScreen(),
+            ),
+          ]),
+          StatefulShellBranch(routes: [
+            GoRoute(
+              path: '/access-validation',
+              builder: (_, __) => const ValidateAccessScreen(),
+            ),
+          ]),
+          StatefulShellBranch(routes: [
+            GoRoute(
+              path: '/porteria-profile',
+              builder: (_, __) => const ProfileScreen(),
+            ),
+          ]),
+        ],
       ),
 
       // ── Shell contratista (bottom nav 2 tabs) ─────────────────────────

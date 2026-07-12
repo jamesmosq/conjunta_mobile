@@ -66,7 +66,27 @@ class SecureStorageService {
     );
   }
 
-  Future<void> clearSession() => _storage.deleteAll();
+  /// `deleteAll()` puede lanzar en Android si la clave del Keystore que respalda
+  /// EncryptedSharedPreferences quedó inválida (falla real y documentada del
+  /// plugin) — si eso ocurre sin capturarlo, el logout se queda a medias: el
+  /// estado en memoria nunca pasa a "no autenticado" porque la excepción
+  /// interrumpe la cadena antes de llegar ahí, y la sesión anterior sigue activa.
+  /// Por eso se intenta `deleteAll()` y, si falla, se borra clave por clave.
+  Future<void> clearSession() async {
+    try {
+      await _storage.deleteAll();
+    } catch (_) {
+      await Future.wait([
+        _storage.delete(key: _keyToken),
+        _storage.delete(key: _keyUserId),
+        _storage.delete(key: _keyUserRole),
+        _storage.delete(key: _keyTenantId),
+        _storage.delete(key: _keyApartmentId),
+        _storage.delete(key: _keyUserName),
+        _storage.delete(key: _keyUserEmail),
+      ].map((f) => f.catchError((_) {})));
+    }
+  }
 }
 
 class SessionData {

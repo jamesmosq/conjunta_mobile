@@ -46,8 +46,13 @@ class AuthNotifier extends AsyncNotifier<AuthUser?> {
   }
 
   Future<void> logout() async {
-    await ref.read(authRepositoryProvider).logout();
-    state = const AsyncData(null);
+    try {
+      await ref.read(authRepositoryProvider).logout();
+    } finally {
+      // El usuario siempre debe salir de la sesión visualmente, incluso si
+      // algo imprevisto en el repositorio (red, storage) lanza una excepción.
+      state = const AsyncData(null);
+    }
   }
 
   /// Limpia el estado local sin llamar al backend — para cuando el token

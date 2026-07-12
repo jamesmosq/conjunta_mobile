@@ -140,6 +140,9 @@ class _PreAuthTab extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final preAuthAsync = ref.watch(preAuthorizationsProvider);
+    // Crear pre-autorizaciones es solo de copropietario/administrador
+    // (ver StorePreAuthRequest::authorize) — el portero solo puede consultarlas.
+    final isPortero = ref.watch(authStateProvider).value?.isPortero ?? false;
     return Scaffold(
       body: AsyncValueWidget<List<PreAuthorization>>(
         value: preAuthAsync,
@@ -156,11 +159,13 @@ class _PreAuthTab extends ConsumerWidget {
                 ),
         ),
       ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => context.push('/porteria/pre-auth/new'),
-        icon: const Icon(Icons.add),
-        label: const Text('Nueva'),
-      ),
+      floatingActionButton: isPortero
+          ? null
+          : FloatingActionButton.extended(
+              onPressed: () => context.push('/porteria/pre-auth/new'),
+              icon: const Icon(Icons.add),
+              label: const Text('Nueva'),
+            ),
     );
   }
 }

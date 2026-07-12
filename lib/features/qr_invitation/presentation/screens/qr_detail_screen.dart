@@ -12,16 +12,26 @@ import '../../models/visit_qr_code.dart';
 import '../../providers/qr_invitation_provider.dart';
 import '../widgets/status_badge.dart';
 
-class QrDetailScreen extends ConsumerWidget {
+class QrDetailScreen extends ConsumerStatefulWidget {
   const QrDetailScreen({super.key, required this.qr});
 
   final VisitQrCode qr;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<QrDetailScreen> createState() => _QrDetailScreenState();
+}
+
+class _QrDetailScreenState extends ConsumerState<QrDetailScreen> {
+  final _qrKey = GlobalKey<_QrWidgetState>();
+  bool _sharing = false;
+
+  @override
+  Widget build(BuildContext context) {
     // Watch for state changes (e.g. revoke updates status)
     final state = ref.watch(qrInvitationProvider);
-    final current = state.qrCodes.where((q) => q.id == qr.id).firstOrNull ?? qr;
+    final current =
+        state.qrCodes.where((q) => q.id == widget.qr.id).firstOrNull ??
+            widget.qr;
 
     return Scaffold(
       appBar: AppBar(
@@ -30,9 +40,16 @@ class QrDetailScreen extends ConsumerWidget {
         foregroundColor: Colors.white,
         actions: [
           IconButton(
-            icon: const Icon(Icons.share_outlined),
+            icon: _sharing
+                ? const SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(
+                        strokeWidth: 2, color: Colors.white),
+                  )
+                : const Icon(Icons.share_outlined),
             tooltip: 'Compartir',
-            onPressed: () => _share(context, current),
+            onPressed: _sharing ? null : () => _share(context, current),
           ),
         ],
       ),
@@ -45,7 +62,7 @@ class QrDetailScreen extends ConsumerWidget {
             const SizedBox(height: 20),
 
             // QR Code
-            _QrWidget(qrUrl: current.qrUrl),
+            _QrWidget(key: _qrKey, qrUrl: current.qrUrl),
             const SizedBox(height: 8),
             Text(
               'Muestra este código al portero',
@@ -87,6 +104,9 @@ class QrDetailScreen extends ConsumerWidget {
                 ('Nombre', current.visitante.nombre),
                 ('Documento',
                     '${current.visitante.tipoDocumentoLabel}: ${current.visitante.documento}'),
+                if (current.visitante.placa != null &&
+                    current.visitante.placa!.isNotEmpty)
+                  ('Vehículo', current.visitante.placa!),
               ],
             ),
             const SizedBox(height: 12),
@@ -116,28 +136,46 @@ class QrDetailScreen extends ConsumerWidget {
   }
 
   Future<void> _share(BuildContext context, VisitQrCode current) async {
-    final fmt = DateFormat('dd/MM/yyyy', 'es');
-
-    String fromStr = '';
-    String untilStr = '';
+    setState(() => _sharing = true);
     try {
-      fromStr = fmt.format(DateTime.parse(current.validoDesde));
-      untilStr = fmt.format(DateTime.parse(current.validoHasta));
-    } catch (_) {}
+      final fmt = DateFormat('dd/MM/yyyy', 'es');
 
-    final text = '''
+      String fromStr = '';
+      String untilStr = '';
+      try {
+        fromStr = fmt.format(DateTime.parse(current.validoDesde));
+        untilStr = fmt.format(DateTime.parse(current.validoHasta));
+      } catch (_) {}
+
+      final hasCode = current.codigo != null && current.codigo!.isNotEmpty;
+
+      final text = '''
 🏠 Invitación de visita — Conjunto Residencial
 
 👤 Visitante: ${current.visitante.nombre}
-📋 ${current.visitante.tipoDocumentoLabel}: ${current.visitante.documento}
+📋 ${current.visitante.tipoDocumentoLabel}: ${current.visitante.documento}${current.visitante.placa != null && current.visitante.placa!.isNotEmpty ? '\n🚗 Vehículo: ${current.visitante.placa}' : ''}
 📅 Válida: $fromStr – $untilStr
-
-El portero debe escanear el QR en la app de portería.
-
-🔗 ${current.qrUrl}
+${hasCode ? '\n🔢 Código de acceso: ${current.codigo}' : ''}
+Muestra el código QR adjunto al portero${hasCode ? ', o dicta el código de acceso si no puedes mostrarlo' : ''}.
 ''';
 
-    await Share.share(text, subject: 'Invitación QR de visita');
+      // Adjunta la imagen real del QR — antes solo se enviaba texto con un
+      // link a un endpoint de API (JSON, no una página), inútil para quien
+      // recibe la invitación.
+      final qrBytes = await _qrKey.currentState?.captureQrImage();
+
+      if (qrBytes != null) {
+        await Share.shareXFiles(
+          [XFile.fromData(qrBytes, name: 'invitacion_qr.png', mimeType: 'image/png')],
+          text: text,
+          subject: 'Invitación QR de visita',
+        );
+      } else {
+        await Share.share(text, subject: 'Invitación QR de visita');
+      }
+    } finally {
+      if (mounted) setState(() => _sharing = false);
+    }
   }
 
   Future<void> _confirmRevoke(
@@ -194,7 +232,7 @@ El portero debe escanear el QR en la app de portería.
 // ── QR Widget ─────────────────────────────────────────────────────────────────
 
 class _QrWidget extends StatefulWidget {
-  const _QrWidget({required this.qrUrl});
+  const _QrWidget({super.key, required this.qrUrl});
 
   final String qrUrl;
 

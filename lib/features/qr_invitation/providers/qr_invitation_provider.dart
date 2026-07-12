@@ -82,6 +82,7 @@ class QrInvitationNotifier extends Notifier<QrInvitationState> {
     required String documentNumber,
     required String validFrom,
     required String validUntil,
+    String? vehiclePlate,
   }) async {
     state = state.copyWith(isCreating: true, clearError: true);
     try {
@@ -92,6 +93,7 @@ class QrInvitationNotifier extends Notifier<QrInvitationState> {
             documentNumber: documentNumber,
             validFrom: validFrom,
             validUntil: validUntil,
+            vehiclePlate: vehiclePlate,
           );
       // Prepend to list (newest first)
       state = state.copyWith(

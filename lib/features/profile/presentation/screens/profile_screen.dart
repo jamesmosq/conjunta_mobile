@@ -14,6 +14,8 @@ class ProfileScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final profileAsync = ref.watch(profileProvider);
     final cs = Theme.of(context).colorScheme;
+    // Vehículos/mascotas son datos de residente — el portero no los tiene.
+    final isPortero = ref.watch(authStateProvider).value?.isPortero ?? false;
 
     return Scaffold(
       appBar: AppBar(title: const Text('Mi perfil')),
@@ -37,26 +39,28 @@ class ProfileScreen extends ConsumerWidget {
                     ),
                   ),
                 ],
-                _SectionTitle('Vehículos'),
-                if (profile.vehicles.isEmpty)
-                  _EmptyHint('Sin vehículos registrados'),
-                ...profile.vehicles.map((v) => _VehicleTile(vehicle: v)),
-                ListTile(
-                  leading: Icon(Icons.add_circle_outline, color: cs.primary),
-                  title: Text('Agregar vehículo',
-                      style: TextStyle(color: cs.primary)),
-                  onTap: () => _showAddVehicleSheet(context, ref),
-                ),
-                _SectionTitle('Mascotas'),
-                if (profile.pets.isEmpty)
-                  _EmptyHint('Sin mascotas registradas'),
-                ...profile.pets.map((p) => _PetTile(pet: p)),
-                ListTile(
-                  leading: Icon(Icons.add_circle_outline, color: cs.primary),
-                  title: Text('Agregar mascota',
-                      style: TextStyle(color: cs.primary)),
-                  onTap: () => _showAddPetSheet(context, ref),
-                ),
+                if (!isPortero) ...[
+                  _SectionTitle('Vehículos'),
+                  if (profile.vehicles.isEmpty)
+                    _EmptyHint('Sin vehículos registrados'),
+                  ...profile.vehicles.map((v) => _VehicleTile(vehicle: v)),
+                  ListTile(
+                    leading: Icon(Icons.add_circle_outline, color: cs.primary),
+                    title: Text('Agregar vehículo',
+                        style: TextStyle(color: cs.primary)),
+                    onTap: () => _showAddVehicleSheet(context, ref),
+                  ),
+                  _SectionTitle('Mascotas'),
+                  if (profile.pets.isEmpty)
+                    _EmptyHint('Sin mascotas registradas'),
+                  ...profile.pets.map((p) => _PetTile(pet: p)),
+                  ListTile(
+                    leading: Icon(Icons.add_circle_outline, color: cs.primary),
+                    title: Text('Agregar mascota',
+                        style: TextStyle(color: cs.primary)),
+                    onTap: () => _showAddPetSheet(context, ref),
+                  ),
+                ],
                 _SectionTitle('Seguridad'),
                 ListTile(
                   leading: const Icon(Icons.lock_outline),

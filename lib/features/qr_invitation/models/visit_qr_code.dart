@@ -3,17 +3,20 @@ class QrVisitante {
     required this.nombre,
     required this.tipoDocumento,
     required this.documento,
+    this.placa,
   });
 
   final String nombre;
   final String tipoDocumento;
   final String documento;
+  final String? placa;
 
   factory QrVisitante.fromJson(Map<String, dynamic> json) {
     return QrVisitante(
       nombre: json['nombre'] as String? ?? '',
       tipoDocumento: json['tipo_documento'] as String? ?? '',
       documento: json['documento'] as String? ?? '',
+      placa: json['placa'] as String?,
     );
   }
 

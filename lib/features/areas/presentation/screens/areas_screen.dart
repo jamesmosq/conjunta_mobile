@@ -92,40 +92,47 @@ class _AreaCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
     return Card(
       clipBehavior: Clip.antiAlias,
       child: InkWell(
         onTap: () => context.push('/areas/${area.id}', extra: area),
         child: Padding(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.all(14),
           child: Column(
+            mainAxisSize: MainAxisSize.min,
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(_iconFor(area.name), size: 48,
+              Container(
+                width: 52,
+                height: 52,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
                   color: area.isActive
-                      ? Theme.of(context).colorScheme.primary
-                      : Colors.grey),
-              const SizedBox(height: 12),
+                      ? cs.primary.withValues(alpha: 0.12)
+                      : Colors.grey.withValues(alpha: 0.15),
+                ),
+                child: Icon(_iconFor(area.name), size: 26,
+                    color: area.isActive ? cs.primary : Colors.grey),
+              ),
+              const SizedBox(height: 10),
               Text(area.name,
                   style: const TextStyle(fontWeight: FontWeight.w600),
                   textAlign: TextAlign.center,
-                  maxLines: 2,
+                  maxLines: 1,
                   overflow: TextOverflow.ellipsis),
-              if (area.capacity != null) ...[
-                const SizedBox(height: 4),
-                Text('Cap. ${area.capacity} personas',
-                    style: const TextStyle(fontSize: 12, color: Colors.grey)),
-              ],
-              const SizedBox(height: 8),
+              const SizedBox(height: 4),
               if (!area.isActive)
                 const StatusChip(label: 'No disponible', color: Colors.grey)
               else
-                FilledButton.tonal(
-                  onPressed: () =>
-                      context.push('/areas/${area.id}', extra: area),
-                  style: FilledButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(horizontal: 12)),
-                  child: const Text('Ver área'),
+                Text(
+                  area.capacity != null
+                      ? 'Cap. ${area.capacity} · Reservar'
+                      : 'Toca para reservar',
+                  style: TextStyle(fontSize: 11.5, color: cs.primary, fontWeight: FontWeight.w600),
+                  textAlign: TextAlign.center,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
             ],
           ),

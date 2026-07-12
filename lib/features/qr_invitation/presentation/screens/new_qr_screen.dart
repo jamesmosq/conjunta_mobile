@@ -17,6 +17,7 @@ class _NewQrScreenState extends ConsumerState<NewQrScreen> {
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
   final _docNumberController = TextEditingController();
+  final _plateController = TextEditingController();
 
   String _docType = 'cc';
   DateTime? _validFrom;
@@ -41,6 +42,7 @@ class _NewQrScreenState extends ConsumerState<NewQrScreen> {
   void dispose() {
     _nameController.dispose();
     _docNumberController.dispose();
+    _plateController.dispose();
     super.dispose();
   }
 
@@ -108,6 +110,19 @@ class _NewQrScreenState extends ConsumerState<NewQrScreen> {
                 ),
                 validator: (v) =>
                     (v == null || v.trim().isEmpty) ? 'El número es obligatorio' : null,
+              ),
+              const SizedBox(height: 16),
+
+              // Placa del vehículo (opcional)
+              TextFormField(
+                controller: _plateController,
+                textCapitalization: TextCapitalization.characters,
+                decoration: const InputDecoration(
+                  labelText: 'Placa del vehículo (opcional)',
+                  hintText: 'ABC123',
+                  prefixIcon: Icon(Icons.directions_car_outlined),
+                  border: OutlineInputBorder(),
+                ),
               ),
               const SizedBox(height: 24),
 
@@ -260,6 +275,9 @@ class _NewQrScreenState extends ConsumerState<NewQrScreen> {
           documentNumber: _docNumberController.text.trim(),
           validFrom: _validFrom!.toIso8601String().split('T').first,
           validUntil: _validUntil!.toIso8601String().split('T').first,
+          vehiclePlate: _plateController.text.trim().isEmpty
+              ? null
+              : _plateController.text.trim().toUpperCase(),
         );
 
     if (!mounted) return;

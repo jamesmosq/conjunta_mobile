@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -48,10 +50,20 @@ class AuthRepository {
   }
 
   Future<void> logout() async {
+    // La sesión local se limpia primero e incondicionalmente — si esto
+    // dependiera de que /auth/logout responda antes, un usuario que cierra
+    // la app mientras la petición sigue en curso (sin indicador de carga)
+    // se queda con la sesión anterior activa al reabrir.
+    await _storage.clearSession();
+    unawaited(_revokeTokenBestEffort());
+  }
+
+  Future<void> _revokeTokenBestEffort() async {
     try {
       await _dio.post('/auth/logout');
-    } finally {
-      await _storage.clearSession();
+    } catch (_) {
+      // El token ya se invalidó localmente; si esta llamada falla
+      // (sin red, servidor caído, etc.) no hay nada más que hacer aquí.
     }
   }
 

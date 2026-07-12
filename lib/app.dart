@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'core/network/api_client.dart';
@@ -71,6 +72,15 @@ class _AppState extends ConsumerState<App> {
       routerConfig: router,
       debugShowCheckedModeBanner: false,
       locale: const Locale('es', 'CO'),
+      localizationsDelegates: const [
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+      ],
+      supportedLocales: const [
+        Locale('es', 'CO'),
+        Locale('es'),
+      ],
     );
   }
 }

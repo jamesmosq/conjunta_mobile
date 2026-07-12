@@ -268,13 +268,26 @@ class _NewQrScreenState extends ConsumerState<NewQrScreen> {
       return;
     }
 
+    // "Válido hasta" se envía a fin de día — si solo se manda la fecha, el
+    // backend la interpreta como medianoche (00:00:00) de ese día y la
+    // invitación queda expirada desde el instante en que empieza, no cuando
+    // termina, dejando al visitante sin poder entrar el día "hasta".
+    final validUntilEndOfDay = DateTime(
+      _validUntil!.year,
+      _validUntil!.month,
+      _validUntil!.day,
+      23,
+      59,
+      59,
+    );
+
     final qr = await ref.read(qrInvitationProvider.notifier).create(
           apartmentId: apartmentId,
           visitorName: _nameController.text.trim(),
           documentType: _docType,
           documentNumber: _docNumberController.text.trim(),
           validFrom: _validFrom!.toIso8601String().split('T').first,
-          validUntil: _validUntil!.toIso8601String().split('T').first,
+          validUntil: validUntilEndOfDay.toIso8601String(),
           vehiclePlate: _plateController.text.trim().isEmpty
               ? null
               : _plateController.text.trim().toUpperCase(),

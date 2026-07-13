@@ -83,7 +83,6 @@ class _BannerCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final timeFmt = DateFormat('HH:mm', 'es');
     final entryTime = timeFmt.format(event.entryDateTime);
-    final cs = Theme.of(context).colorScheme;
 
     return Dismissible(
       key: ValueKey(event.entryAt),

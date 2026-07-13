@@ -72,6 +72,9 @@ class AnnouncementsNotifier extends StateNotifier<AnnouncementsState> {
         page: nextPage,
         unreadOnly: state.unreadOnly,
       );
+      // El provider puede haber sido invalidado (ej. resetUserScopedProviders
+      // en login/logout) mientras esta llamada estaba en curso.
+      if (!mounted) return;
       state = state.copyWith(
         items: [...state.items, ...result.items],
         hasMore: result.hasMore,
@@ -79,6 +82,7 @@ class AnnouncementsNotifier extends StateNotifier<AnnouncementsState> {
         isLoading: false,
       );
     } catch (_) {
+      if (!mounted) return;
       state = state.copyWith(
         isLoading: false,
         error: 'No se pudieron cargar los comunicados.',

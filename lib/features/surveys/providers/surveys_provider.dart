@@ -72,8 +72,14 @@ class SurveysNotifier extends StateNotifier<SurveysState> {
     state = state.copyWith(isLoading: true, clearError: true);
     try {
       final items = await _repo.getSurveys(status: 'active');
+      // El provider puede haber sido invalidado (ej. resetUserScopedProviders
+      // en login/logout) mientras esta llamada estaba en curso — escribir en
+      // `state` de un notifier ya disposed lanza "Bad state: ... after
+      // dispose was called".
+      if (!mounted) return;
       state = state.copyWith(surveys: items, isLoading: false);
     } catch (_) {
+      if (!mounted) return;
       state = state.copyWith(
         isLoading: false,
         error: 'No se pudieron cargar las encuestas.',

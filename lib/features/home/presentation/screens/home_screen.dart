@@ -229,12 +229,25 @@ class _PendingSurveysBanner extends ConsumerWidget {
 class _QuickAccessGrid extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final user = ref.watch(authStateProvider).value;
+    // Invitar (QR) y Parqueadero propio solo aplican a quien vive en el
+    // conjunto o lo administra — el backend rechaza estas acciones para
+    // auxiliar_contable, consejo y revisor_fiscal (403), y mostrarlas ahí
+    // solo lleva a un error confuso al tocarlas.
+    final canInvite = user?.isCopropietario == true || user?.isAdministrador == true;
+    final hasApartment = user?.apartmentId != null;
+    final hasStaffBadge = user?.hasStaffBadge == true;
+
     final items = [
       _QuickItem(Icons.door_front_door_outlined, 'Pre-Auth', '/porteria'),
-      _QuickItem(Icons.qr_code_2_outlined, 'Invitar', '/qr-invitations/new'),
+      if (canInvite)
+        _QuickItem(Icons.qr_code_2_outlined, 'Invitar', '/qr-invitations/new'),
       _QuickItem(Icons.build_outlined, 'Reporte', '/maintenance/new'),
       _QuickItem(Icons.campaign_outlined, 'Avisos', '/announcements'),
-      _QuickItem(Icons.local_parking_outlined, 'Parqueadero', '/my-parking'),
+      if (hasApartment)
+        _QuickItem(Icons.local_parking_outlined, 'Parqueadero', '/my-parking'),
+      if (hasStaffBadge)
+        _QuickItem(Icons.badge_outlined, 'Mi código', '/my-badge'),
     ];
 
     return SingleChildScrollView(
@@ -285,15 +298,24 @@ class _ServicesList extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final unreadChat = ref.watch(unreadChatCountProvider);
+    final user = ref.watch(authStateProvider).value;
+    // El backend solo permite QR de invitación y chat con administración a
+    // copropietario/administrador (VisitQrCodePolicy, ChatConversationPolicy)
+    // — para el resto de roles (auxiliar_contable, consejo, revisor_fiscal)
+    // esconder estas tarjetas evita un 403 al tocarlas.
+    final canUseResidentChat =
+        user?.isCopropietario == true || user?.isAdministrador == true;
+    final hasApartment = user?.apartmentId != null;
 
     final services = [
-      _ServiceItem(
-        icon: Icons.account_balance_wallet_outlined,
-        title: 'Estado de cuenta',
-        subtitle: 'Cuotas, pagos y paz y salvo',
-        route: '/account',
-        color: const Color(0xFF4CAF50),
-      ),
+      if (hasApartment)
+        _ServiceItem(
+          icon: Icons.account_balance_wallet_outlined,
+          title: 'Estado de cuenta',
+          subtitle: 'Cuotas, pagos y paz y salvo',
+          route: '/account',
+          color: const Color(0xFF4CAF50),
+        ),
       _ServiceItem(
         icon: Icons.door_front_door_outlined,
         title: 'Portería',
@@ -336,21 +358,23 @@ class _ServicesList extends ConsumerWidget {
         route: '/surveys',
         color: const Color(0xFF4F46E5),
       ),
-      _ServiceItem(
-        icon: Icons.qr_code_2_outlined,
-        title: 'Invitaciones QR',
-        subtitle: 'Genera QR de acceso para tus visitantes',
-        route: '/qr-invitations',
-        color: const Color(0xFF7B1FA2),
-      ),
-      _ServiceItem(
-        icon: Icons.chat_bubble_outline,
-        title: 'Chat con Administración',
-        subtitle: 'Mensajes directos al administrador',
-        route: '/chat',
-        color: const Color(0xFF00897B),
-        badge: unreadChat > 0 ? unreadChat : null,
-      ),
+      if (canUseResidentChat) ...[
+        _ServiceItem(
+          icon: Icons.qr_code_2_outlined,
+          title: 'Invitaciones QR',
+          subtitle: 'Genera QR de acceso para tus visitantes',
+          route: '/qr-invitations',
+          color: const Color(0xFF7B1FA2),
+        ),
+        _ServiceItem(
+          icon: Icons.chat_bubble_outline,
+          title: 'Chat con Administración',
+          subtitle: 'Mensajes directos al administrador',
+          route: '/chat',
+          color: const Color(0xFF00897B),
+          badge: unreadChat > 0 ? unreadChat : null,
+        ),
+      ],
     ];
 
     return Column(

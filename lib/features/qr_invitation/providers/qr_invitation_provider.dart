@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/utils/error_utils.dart';
 import '../data/qr_invitation_repository.dart';
 import '../models/visit_qr_code.dart';
 
@@ -140,11 +141,7 @@ class QrInvitationNotifier extends Notifier<QrInvitationState> {
 
   Future<void> refresh() => _loadHistory();
 
-  String _parseError(Object e) {
-    final msg = e.toString();
-    if (msg.startsWith('Exception: ')) return msg.substring(11);
-    return msg;
-  }
+  String _parseError(Object e) => dioErrorMessage(e, 'No se pudo completar la solicitud.');
 }
 
 final qrInvitationProvider =

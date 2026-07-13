@@ -3,6 +3,7 @@ class Booking {
     required this.id,
     required this.commonAreaId,
     this.commonAreaName,
+    this.apartmentId,
     required this.date,
     required this.startTime,
     required this.endTime,
@@ -15,6 +16,7 @@ class Booking {
         commonAreaId: json['common_area_id'] as int,
         commonAreaName:
             (json['common_area'] as Map<String, dynamic>?)?['name'] as String?,
+        apartmentId: json['apartment_id'] as int?,
         date: json['date'] as String? ?? '',
         startTime: json['start_time'] as String? ?? '',
         endTime: json['end_time'] as String? ?? '',
@@ -25,6 +27,7 @@ class Booking {
   final int id;
   final int commonAreaId;
   final String? commonAreaName;
+  final int? apartmentId;
   final String date;
   final String startTime;
   final String endTime;

@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
+import '../../../../core/utils/error_utils.dart';
 import '../../../../core/widgets/async_value_widget.dart';
 import '../../../auth/providers/auth_provider.dart';
 import '../../data/areas_repository.dart';
@@ -100,7 +101,7 @@ class _BookAreaScreenState extends ConsumerState<BookAreaScreen> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: ${e.toString().replaceAll('Exception: ', '')}')),
+          SnackBar(content: Text(dioErrorMessage(e, 'No se pudo crear la reserva.'))),
         );
       }
     } finally {

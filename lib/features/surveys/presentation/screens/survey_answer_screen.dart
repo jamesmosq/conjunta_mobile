@@ -180,6 +180,8 @@ class _SurveyAnswerScreenState extends ConsumerState<SurveyAnswerScreen> {
 
         if (_submitted) return _SuccessView(survey: survey);
 
+        if (!survey.canRespondNow) return _ClosedView(survey: survey);
+
         if (questions.isEmpty) {
           return Scaffold(
             appBar: AppBar(title: Text(survey.title)),
@@ -299,38 +301,61 @@ class _SurveyAnswerScreenState extends ConsumerState<SurveyAnswerScreen> {
                     children: [
                       if (_currentPage > 0)
                         Expanded(
-                          child: OutlinedButton.icon(
-                            icon: const Icon(Icons.arrow_back, size: 18),
-                            label: const Text('Anterior'),
+                          child: OutlinedButton(
                             onPressed: _isSubmitting ? null : _prev,
+                            child: const Row(
+                              mainAxisSize: MainAxisSize.min,
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(Icons.arrow_back, size: 18),
+                                SizedBox(width: 6),
+                                Flexible(
+                                  child: Text(
+                                    'Anterior',
+                                    overflow: TextOverflow.ellipsis,
+                                    maxLines: 1,
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
                         ),
                       if (_currentPage > 0) const SizedBox(width: 12),
                       Expanded(
-                        flex: 2,
-                        child: FilledButton.icon(
-                          icon: _isSubmitting
-                              ? const SizedBox.square(
-                                  dimension: 16,
-                                  child: CircularProgressIndicator(
-                                    strokeWidth: 2,
-                                    color: Colors.white,
-                                  ),
-                                )
-                              : Icon(
-                                  _currentPage < questions.length - 1
-                                      ? Icons.arrow_forward
-                                      : Icons.send_outlined,
-                                  size: 18,
-                                ),
-                          label: Text(
-                            _currentPage < questions.length - 1
-                                ? 'Siguiente'
-                                : 'Enviar respuestas',
-                          ),
+                        child: FilledButton(
                           onPressed: _isSubmitting
                               ? null
                               : () => _next(questions),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              _isSubmitting
+                                  ? const SizedBox.square(
+                                      dimension: 16,
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2,
+                                        color: Colors.white,
+                                      ),
+                                    )
+                                  : Icon(
+                                      _currentPage < questions.length - 1
+                                          ? Icons.arrow_forward
+                                          : Icons.send_outlined,
+                                      size: 18,
+                                    ),
+                              const SizedBox(width: 6),
+                              Flexible(
+                                child: Text(
+                                  _currentPage < questions.length - 1
+                                      ? 'Siguiente'
+                                      : 'Enviar respuestas',
+                                  overflow: TextOverflow.ellipsis,
+                                  maxLines: 1,
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
                       ),
                     ],
@@ -583,6 +608,70 @@ class _SuccessView extends StatelessWidget {
               const SizedBox(height: 10),
               Text(
                 'Tus respuestas han sido registradas${survey.isAnonymous ? ' de forma anónima' : ''}.',
+                textAlign: TextAlign.center,
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    ),
+              ),
+              const SizedBox(height: 36),
+              FilledButton.icon(
+                icon: const Icon(Icons.arrow_back),
+                label: const Text('Volver a encuestas'),
+                onPressed: () {
+                  if (context.canPop()) {
+                    context.pop();
+                  } else {
+                    context.go('/surveys');
+                  }
+                },
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ── Encuesta ya cerrada ─────────────────────────────────────────────────────────
+
+class _ClosedView extends StatelessWidget {
+  const _ClosedView({required this.survey});
+  final Survey survey;
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: Text(survey.title)),
+      body: Center(
+        child: Padding(
+          padding: const EdgeInsets.all(32),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  color: Colors.grey.withValues(alpha: 0.12),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  Icons.event_busy_outlined,
+                  size: 64,
+                  color: Colors.grey.shade600,
+                ),
+              ),
+              const SizedBox(height: 24),
+              Text(
+                'Esta encuesta ya cerró',
+                style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                      fontWeight: FontWeight.w700,
+                    ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 10),
+              Text(
+                'El plazo para responder venció${survey.closesAtDate != null ? ' el ${survey.closesAtDate!.day}/${survey.closesAtDate!.month}/${survey.closesAtDate!.year}' : ''}. Ya no se pueden registrar respuestas.',
                 textAlign: TextAlign.center,
                 style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                       color: Theme.of(context).colorScheme.onSurfaceVariant,

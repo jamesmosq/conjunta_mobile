@@ -175,7 +175,7 @@ class _PhotoThumbnail extends StatelessWidget {
     final pageCtrl = PageController(initialPage: initialIndex);
     showDialog<void>(
       context: context,
-      builder: (_) => Dialog.fullscreen(
+      builder: (ctx) => Dialog.fullscreen(
         backgroundColor: Colors.black,
         child: Stack(
           children: [
@@ -200,7 +200,7 @@ class _PhotoThumbnail extends StatelessWidget {
               right: 16,
               child: IconButton(
                 icon: const Icon(Icons.close, color: Colors.white),
-                onPressed: () => Navigator.pop(context),
+                onPressed: () => Navigator.pop(ctx),
               ),
             ),
           ],

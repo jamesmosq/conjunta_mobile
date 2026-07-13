@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
+import '../../../../core/utils/error_utils.dart';
 import '../../models/chat_models.dart';
 import '../../providers/chat_provider.dart';
 
@@ -27,7 +28,7 @@ class ConversationsScreen extends ConsumerWidget {
             children: [
               const Icon(Icons.error_outline, size: 48, color: Colors.red),
               const SizedBox(height: 12),
-              Text(e.toString(), textAlign: TextAlign.center),
+              Text(dioErrorMessage(e), textAlign: TextAlign.center),
               const SizedBox(height: 12),
               FilledButton(
                 onPressed: () =>

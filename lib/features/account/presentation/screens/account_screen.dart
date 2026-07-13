@@ -459,7 +459,7 @@ class _ChargeCardState extends ConsumerState<_ChargeCard> {
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
     final dateFmt = DateFormat('dd MMM yyyy', 'es');
-    String? dueStr;
+    String dueStr;
     try {
       dueStr = dateFmt.format(DateTime.parse(charge.dueDate));
     } catch (_) {
@@ -538,7 +538,7 @@ class _ChargeCardState extends ConsumerState<_ChargeCard> {
                     size: 13, color: cs.outlineVariant),
                 const SizedBox(width: 4),
                 Text(
-                  'Vence: ${dueStr ?? '--'}',
+                  'Vence: $dueStr',
                   style: TextStyle(
                       fontSize: 12,
                       color: charge.isOverdue
@@ -674,7 +674,7 @@ class _ChargeDetailSheetState extends ConsumerState<_ChargeDetailSheet> {
     final dateFmt = DateFormat('dd \'de\' MMMM \'de\' yyyy', 'es');
     final fmt = widget.moneyFmt;
 
-    String? dueFmt;
+    String dueFmt;
     try {
       dueFmt = dateFmt.format(DateTime.parse(charge.dueDate));
     } catch (_) {
@@ -742,7 +742,7 @@ class _ChargeDetailSheetState extends ConsumerState<_ChargeDetailSheet> {
             valueColor: charge.balanceDue > 0 ? Colors.red : Colors.green,
           ),
           const SizedBox(height: 8),
-          _DetailRow(label: 'Vence', value: dueFmt ?? '--'),
+          _DetailRow(label: 'Vence', value: dueFmt),
           const SizedBox(height: 24),
           if (charge.isPaid)
             SizedBox(

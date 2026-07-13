@@ -64,16 +64,16 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
     if (!_hasChanges) return true;
     final ok = await showDialog<bool>(
       context: context,
-      builder: (_) => AlertDialog(
+      builder: (ctx) => AlertDialog(
         title: const Text('Descartar cambios'),
         content:
             const Text('¿Deseas salir sin guardar los cambios?'),
         actions: [
           TextButton(
-              onPressed: () => Navigator.pop(context, false),
+              onPressed: () => Navigator.pop(ctx, false),
               child: const Text('Continuar editando')),
           TextButton(
-            onPressed: () => Navigator.pop(context, true),
+            onPressed: () => Navigator.pop(ctx, true),
             child: const Text('Descartar'),
           ),
         ],

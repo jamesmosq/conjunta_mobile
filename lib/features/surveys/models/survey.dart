@@ -72,6 +72,13 @@ class Survey {
   DateTime? get closesAtDate =>
       closesAt != null ? DateTime.tryParse(closesAt!) : null;
 
+  /// El backend no pasa `status` a `closed` automáticamente cuando vence
+  /// `closes_at` — puede seguir marcada "active" ya vencida. El servicio de
+  /// respuesta sí valida la fecha (rechaza con 422), así que el formulario
+  /// debe chequearla también para no dejar al residente llenarla en vano.
+  bool get canRespondNow =>
+      isActive && (closesAtDate == null || closesAtDate!.isAfter(DateTime.now()));
+
   String get statusLabel => switch (status) {
         'active' => 'Activa',
         'closed' => 'Cerrada',

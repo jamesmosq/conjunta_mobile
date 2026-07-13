@@ -373,18 +373,18 @@ class _PreAuthCard extends ConsumerWidget {
   Future<bool?> _confirmDelete(BuildContext context, String name) {
     return showDialog<bool>(
       context: context,
-      builder: (_) => AlertDialog(
+      builder: (ctx) => AlertDialog(
         title: const Text('Eliminar pre-autorización'),
         content:
             Text('¿Deseas eliminar la pre-autorización de $name?'),
         actions: [
           TextButton(
-              onPressed: () => Navigator.pop(context, false),
+              onPressed: () => Navigator.pop(ctx, false),
               child: const Text('Cancelar')),
           FilledButton(
             style: FilledButton.styleFrom(
-                backgroundColor: Theme.of(context).colorScheme.error),
-            onPressed: () => Navigator.pop(context, true),
+                backgroundColor: Theme.of(ctx).colorScheme.error),
+            onPressed: () => Navigator.pop(ctx, true),
             child: const Text('Eliminar'),
           ),
         ],

@@ -278,9 +278,9 @@ class _MaterialsSectionState extends ConsumerState<_MaterialsSection> {
       context: context,
       isScrollControlled: true,
       useSafeArea: true,
-      builder: (_) => Padding(
+      builder: (ctx) => Padding(
         padding: EdgeInsets.fromLTRB(
-            16, 16, 16, MediaQuery.of(context).viewInsets.bottom + 16),
+            16, 16, 16, MediaQuery.of(ctx).viewInsets.bottom + 16),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -327,7 +327,7 @@ class _MaterialsSectionState extends ConsumerState<_MaterialsSection> {
               child: FilledButton(
                 onPressed: () async {
                   if (descCtrl.text.trim().isEmpty) return;
-                  Navigator.pop(context);
+                  Navigator.pop(ctx);
                   final mat = {
                     'description': descCtrl.text.trim(),
                     'quantity':

@@ -3,8 +3,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
+import '../../../../core/utils/error_utils.dart';
 import '../../../../core/widgets/async_value_widget.dart';
 import '../../../../core/widgets/status_chip.dart';
+import '../../../auth/providers/auth_provider.dart';
 import '../../models/booking.dart';
 import '../../models/common_area.dart';
 import '../../providers/areas_provider.dart';
@@ -174,6 +176,14 @@ class _BookingCard extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final fmt = DateFormat('dd/MM/yyyy', 'es');
+    final user = ref.watch(authStateProvider).value;
+    // El listado no está siempre acotado a "mis" reservas (administrador,
+    // consejo, auxiliar_contable y revisor_fiscal ven todo el conjunto para
+    // labores de gestión/auditoría) — mostrar "Cancelar" solo cuando de
+    // verdad aplica evita un botón que siempre va a devolver 403.
+    final canCancel = booking.canCancel &&
+        (user?.isAdministrador == true ||
+            (user?.apartmentId != null && user!.apartmentId == booking.apartmentId));
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -195,7 +205,7 @@ class _BookingCard extends ConsumerWidget {
             const SizedBox(height: 4),
             _infoRow(Icons.access_time_outlined,
                 '${booking.startTime} – ${booking.endTime}'),
-            if (booking.canCancel) ...[
+            if (canCancel) ...[
               const SizedBox(height: 12),
               Align(
                 alignment: Alignment.centerRight,
@@ -227,7 +237,7 @@ class _BookingCard extends ConsumerWidget {
     final reasonCtrl = TextEditingController();
     final confirmed = await showDialog<bool>(
       context: context,
-      builder: (_) => AlertDialog(
+      builder: (ctx) => AlertDialog(
         title: const Text('Cancelar reserva'),
         content: TextField(
           controller: reasonCtrl,
@@ -236,21 +246,31 @@ class _BookingCard extends ConsumerWidget {
         ),
         actions: [
           TextButton(
-              onPressed: () => Navigator.pop(context, false),
+              onPressed: () => Navigator.pop(ctx, false),
               child: const Text('Volver')),
           FilledButton(
-              onPressed: () => Navigator.pop(context, true),
+              onPressed: () => Navigator.pop(ctx, true),
               child: const Text('Confirmar')),
         ],
       ),
     );
-    if (confirmed == true && context.mounted) {
+    if (confirmed != true || !context.mounted) return;
+
+    try {
       await ref
           .read(myBookingsProvider.notifier)
           .cancel(booking.id, reasonCtrl.text.trim());
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Reserva cancelada')),
+        );
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(dioErrorMessage(e, 'No se pudo cancelar la reserva.')),
+          ),
         );
       }
     }

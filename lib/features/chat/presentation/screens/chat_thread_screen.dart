@@ -481,10 +481,10 @@ class _AttachmentWidget extends StatelessWidget {
   void _viewImage(BuildContext context) {
     showDialog(
       context: context,
-      builder: (_) => Dialog(
+      builder: (ctx) => Dialog(
         backgroundColor: Colors.black,
         child: GestureDetector(
-          onTap: () => Navigator.pop(context),
+          onTap: () => Navigator.pop(ctx),
           child: CachedNetworkImage(
             imageUrl: attachment.url,
             fit: BoxFit.contain,

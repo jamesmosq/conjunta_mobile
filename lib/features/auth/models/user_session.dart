@@ -42,4 +42,15 @@ class AuthUser {
   bool get isContratista => role == 'contratista';
   bool get isAdministrador => role == 'administrador';
   bool get isPortero => role == 'portero';
+
+  /// Roles de personal administrativo sin apartamento asignado — tienen
+  /// carné de acceso propio (ver StaffBadgeService::ELIGIBLE_ROLES en backend).
+  static const _staffBadgeRoles = {
+    'administrador',
+    'auxiliar_contable',
+    'consejo',
+    'revisor_fiscal',
+  };
+
+  bool get hasStaffBadge => _staffBadgeRoles.contains(role);
 }

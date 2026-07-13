@@ -298,7 +298,15 @@ class _NewQrScreenState extends ConsumerState<NewQrScreen> {
     if (qr != null) {
       // Navigate to detail (replace so back goes to history)
       context.pushReplacement('/qr-invitations/${qr.id}', extra: qr);
+      return;
     }
+
+    // create() falló — el provider ya guardó el mensaje en state.error, pero
+    // nadie lo mostraba: el botón parecía no hacer nada.
+    final error = ref.read(qrInvitationProvider).error;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(error ?? 'No se pudo crear la invitación.')),
+    );
   }
 }
 

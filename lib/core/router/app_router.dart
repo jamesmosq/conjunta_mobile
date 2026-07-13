@@ -82,6 +82,10 @@ import '../../features/manual_visit/presentation/screens/register_visit_screen.d
 // Parqueadero propio — copropietario
 import '../../features/parking/presentation/screens/my_parking_screen.dart';
 
+// Carné de acceso — personal administrativo sin apartamento
+import '../../features/staff_badge/presentation/screens/my_badge_screen.dart';
+import '../../features/staff_badge/presentation/screens/staff_access_screen.dart';
+
 import '../config/app_config.dart';
 import '../widgets/app_shell.dart';
 
@@ -369,6 +373,14 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/my-parking',
         builder: (_, __) => const MyParkingScreen(),
+      ),
+      GoRoute(
+        path: '/my-badge',
+        builder: (_, __) => const MyBadgeScreen(),
+      ),
+      GoRoute(
+        path: '/staff-access',
+        builder: (_, __) => const StaffAccessScreen(),
       ),
 
       // ── Shell contratista (bottom nav 2 tabs) ─────────────────────────

@@ -66,26 +66,31 @@ class SecureStorageService {
     );
   }
 
-  /// `deleteAll()` puede lanzar en Android si la clave del Keystore que respalda
-  /// EncryptedSharedPreferences quedó inválida (falla real y documentada del
-  /// plugin) — si eso ocurre sin capturarlo, el logout se queda a medias: el
-  /// estado en memoria nunca pasa a "no autenticado" porque la excepción
-  /// interrumpe la cadena antes de llegar ahí, y la sesión anterior sigue activa.
-  /// Por eso se intenta `deleteAll()` y, si falla, se borra clave por clave.
+  /// `deleteAll()` en Android (con `encryptedSharedPreferences: true`) tiene un
+  /// problema documentado en el propio repo del plugin: en ciertos dispositivos
+  /// se queda colgado indefinidamente en el canal de plataforma — no lanza
+  /// excepción, simplemente el `await` nunca resuelve. Un `try/catch` alrededor
+  /// no sirve de nada contra un hang (solo contra un throw), así que:
+  /// 1. Nunca se llama `deleteAll()` — se borra clave por clave, que no tiene
+  ///    ese problema reportado.
+  /// 2. Cada borrado individual además lleva un timeout corto: si el canal de
+  ///    plataforma se cuelga igual por cualquier otra razón, no bloquea el
+  ///    logout — la clave puede quedar huérfana en el peor caso, pero el
+  ///    usuario nunca se queda atascado en la pantalla anterior.
   Future<void> clearSession() async {
-    try {
-      await _storage.deleteAll();
-    } catch (_) {
-      await Future.wait([
-        _storage.delete(key: _keyToken),
-        _storage.delete(key: _keyUserId),
-        _storage.delete(key: _keyUserRole),
-        _storage.delete(key: _keyTenantId),
-        _storage.delete(key: _keyApartmentId),
-        _storage.delete(key: _keyUserName),
-        _storage.delete(key: _keyUserEmail),
-      ].map((f) => f.catchError((_) {})));
-    }
+    const keys = [
+      _keyToken,
+      _keyUserId,
+      _keyUserRole,
+      _keyTenantId,
+      _keyApartmentId,
+      _keyUserName,
+      _keyUserEmail,
+    ];
+    await Future.wait(keys.map((key) => _storage
+        .delete(key: key)
+        .timeout(const Duration(seconds: 3))
+        .catchError((_) {})));
   }
 }
 

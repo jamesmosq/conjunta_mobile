@@ -89,6 +89,12 @@ class _QuickAccessRow extends StatelessWidget {
               label: 'No autorizados',
               onTap: () => context.push('/blacklist'),
             ),
+            const SizedBox(width: 8),
+            _QuickAccessChip(
+              icon: Icons.badge_outlined,
+              label: 'Personal',
+              onTap: () => context.push('/staff-access'),
+            ),
           ],
         ),
       ),
@@ -319,15 +325,15 @@ class _PreAuthCard extends ConsumerWidget {
           onPressed: () async {
             final confirm = await showDialog<bool>(
               context: context,
-              builder: (_) => AlertDialog(
+              builder: (ctx) => AlertDialog(
                 title: const Text('Eliminar pre-autorización'),
                 content: Text('¿Deseas eliminar la pre-autorización de ${auth.visitorName}?'),
                 actions: [
                   TextButton(
-                      onPressed: () => Navigator.pop(context, false),
+                      onPressed: () => Navigator.pop(ctx, false),
                       child: const Text('Cancelar')),
                   FilledButton(
-                      onPressed: () => Navigator.pop(context, true),
+                      onPressed: () => Navigator.pop(ctx, true),
                       child: const Text('Eliminar')),
                 ],
               ),

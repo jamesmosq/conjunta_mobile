@@ -96,17 +96,21 @@ class ProfileScreen extends ConsumerWidget {
   }
 
   Future<void> _confirmLogout(BuildContext context, WidgetRef ref) async {
+    // El diálogo se empuja al navigator raíz (comportamiento por defecto de
+    // showDialog), pero este screen vive dentro del navigator anidado de un
+    // StatefulShellRoute — usar el `context` externo para el pop() aquí
+    // apuntaría al navigator equivocado. Se usa el `ctx` propio del builder.
     final ok = await showDialog<bool>(
       context: context,
-      builder: (_) => AlertDialog(
+      builder: (ctx) => AlertDialog(
         title: const Text('Cerrar sesión'),
         content: const Text('¿Estás seguro de que deseas salir?'),
         actions: [
           TextButton(
-              onPressed: () => Navigator.pop(context, false),
+              onPressed: () => Navigator.pop(ctx, false),
               child: const Text('Cancelar')),
           TextButton(
-            onPressed: () => Navigator.pop(context, true),
+            onPressed: () => Navigator.pop(ctx, true),
             child:
                 const Text('Salir', style: TextStyle(color: Colors.red)),
           ),
@@ -286,15 +290,15 @@ class _VehicleTile extends ConsumerWidget {
         onPressed: () async {
           final ok = await showDialog<bool>(
             context: context,
-            builder: (_) => AlertDialog(
+            builder: (ctx) => AlertDialog(
               title: const Text('Eliminar vehículo'),
               content: Text('¿Eliminar ${vehicle.plate}?'),
               actions: [
                 TextButton(
-                    onPressed: () => Navigator.pop(context, false),
+                    onPressed: () => Navigator.pop(ctx, false),
                     child: const Text('Cancelar')),
                 TextButton(
-                  onPressed: () => Navigator.pop(context, true),
+                  onPressed: () => Navigator.pop(ctx, true),
                   child: const Text('Eliminar',
                       style: TextStyle(color: Colors.red)),
                 ),
@@ -335,15 +339,15 @@ class _PetTile extends ConsumerWidget {
         onPressed: () async {
           final ok = await showDialog<bool>(
             context: context,
-            builder: (_) => AlertDialog(
+            builder: (ctx) => AlertDialog(
               title: const Text('Eliminar mascota'),
               content: Text('¿Eliminar a ${pet.name}?'),
               actions: [
                 TextButton(
-                    onPressed: () => Navigator.pop(context, false),
+                    onPressed: () => Navigator.pop(ctx, false),
                     child: const Text('Cancelar')),
                 TextButton(
-                  onPressed: () => Navigator.pop(context, true),
+                  onPressed: () => Navigator.pop(ctx, true),
                   child: const Text('Eliminar',
                       style: TextStyle(color: Colors.red)),
                 ),

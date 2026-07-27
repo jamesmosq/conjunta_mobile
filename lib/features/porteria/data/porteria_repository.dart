@@ -91,11 +91,16 @@ class PorteriaRepository {
     required int apartmentId,
     required String description,
     String? sender,
+    String? authorizedBy,
+    String? authorizationMethod,
   }) async {
     final response = await _dio.post('/packages', data: {
       'apartment_id': apartmentId,
       'description': description,
       if (sender != null && sender.isNotEmpty) 'sender': sender,
+      if (authorizedBy != null && authorizedBy.isNotEmpty) 'authorized_by': authorizedBy,
+      if (authorizationMethod != null && authorizationMethod.isNotEmpty)
+        'authorization_method': authorizationMethod,
     });
     final raw = response.data as Map<String, dynamic>;
     final data = raw['data'] as Map<String, dynamic>? ?? raw;

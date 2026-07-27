@@ -257,7 +257,44 @@ class _ValidateAccessScreenState extends ConsumerState<ValidateAccessScreen> {
               padding: const EdgeInsets.only(top: 4),
               child: Text('Apto: ${preview.apartamento}'),
             ),
+          if (preview.esPermanente)
+            Padding(
+              padding: const EdgeInsets.only(top: 8),
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                decoration: BoxDecoration(
+                  color: Colors.blue.shade50,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Text(
+                  'Código permanente — visitante recurrente',
+                  style: TextStyle(fontSize: 12, color: Colors.blue.shade700),
+                ),
+              ),
+            ),
           const Spacer(),
+          // Mejora 13 informe UI-UX / Ley 1581 de 2012 (Habeas Data)
+          Container(
+            padding: const EdgeInsets.all(10),
+            margin: const EdgeInsets.only(bottom: 12),
+            decoration: BoxDecoration(
+              color: Colors.grey.shade100,
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Icon(Icons.shield_outlined, size: 14, color: Colors.grey.shade600),
+                const SizedBox(width: 6),
+                Expanded(
+                  child: Text(
+                    'Infórmale al visitante: sus datos se recopilan conforme a la Ley 1581 de 2012 de tratamiento de datos personales.',
+                    style: TextStyle(fontSize: 11, color: Colors.grey.shade600),
+                  ),
+                ),
+              ],
+            ),
+          ),
           if (_error != null)
             Padding(
               padding: const EdgeInsets.only(bottom: 12),
@@ -384,17 +421,22 @@ class _ValidateAccessScreenState extends ConsumerState<ValidateAccessScreen> {
     });
     try {
       final repo = ref.read(accessValidationRepositoryProvider);
+      String? parkingSpot;
       if (_pendingCode != null) {
-        await repo.confirmByCode(_pendingCode!);
+        parkingSpot = await repo.confirmByCode(_pendingCode!);
       } else if (_pendingUuid != null && _pendingToken != null) {
-        await repo.confirmByUuid(_pendingUuid!, _pendingToken!);
+        parkingSpot = await repo.confirmByUuid(_pendingUuid!, _pendingToken!);
       }
       if (!mounted) return;
       final name = _preview?.nombre ?? 'Visitante';
+      final message = parkingSpot != null
+          ? '$name registrado. Indícale que debe parquear en $parkingSpot.'
+          : '$name registrado correctamente.';
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('$name registrado correctamente.'),
+          content: Text(message),
           backgroundColor: Colors.green,
+          duration: Duration(seconds: parkingSpot != null ? 6 : 4),
         ),
       );
       _resetToInput();

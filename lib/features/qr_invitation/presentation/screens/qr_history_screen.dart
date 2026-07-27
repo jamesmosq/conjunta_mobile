@@ -13,6 +13,7 @@ class QrHistoryScreen extends ConsumerWidget {
   static const _filters = [
     (null, 'Todos'),
     ('activo', 'Activo'),
+    ('permanente', 'Permanente'),
     ('usado', 'Usado'),
     ('expirado', 'Expirado'),
     ('revocado', 'Revocado'),
@@ -163,9 +164,21 @@ class _QrCard extends StatelessWidget {
                         color: Colors.grey.shade600,
                       ),
                     ),
+                    if (qr.apartamentoNumero != null) ...[
+                      const SizedBox(height: 2),
+                      Text(
+                        'Apto ${qr.apartamentoNumero}',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Colors.grey.shade600,
+                        ),
+                      ),
+                    ],
                     const SizedBox(height: 4),
                     Text(
-                      _dateRange(fmt, qr.validoDesde, qr.validoHasta),
+                      qr.esPermanente
+                          ? 'Desde ${_formatSingleDate(fmt, qr.validoDesde)} · Sin vencimiento'
+                          : _dateRange(fmt, qr.validoDesde, qr.validoHasta ?? ''),
                       style: TextStyle(
                         fontSize: 12,
                         color: Colors.grey.shade500,
@@ -201,8 +214,17 @@ class _QrCard extends StatelessWidget {
     }
   }
 
+  String _formatSingleDate(DateFormat fmt, String date) {
+    try {
+      return fmt.format(DateTime.parse(date));
+    } catch (_) {
+      return '';
+    }
+  }
+
   Color _statusColor(String status) => switch (status) {
         'activo' => Colors.green,
+        'permanente' => Colors.blue,
         'usado' => Colors.blue,
         'expirado' => Colors.orange,
         'revocado' => Colors.red,

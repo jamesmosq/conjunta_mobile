@@ -88,6 +88,7 @@ import '../../features/staff_badge/presentation/screens/staff_access_screen.dart
 
 import '../config/app_config.dart';
 import '../widgets/app_shell.dart';
+import 'role_route_guard.dart';
 
 final routerProvider = Provider<GoRouter>((ref) {
   final authState = ref.watch(authStateProvider);
@@ -106,10 +107,16 @@ final routerProvider = Provider<GoRouter>((ref) {
 
       if (!isAuthenticated && !isPublic) return '/login';
       if (isAuthenticated && isPublic) {
-        if (user.isContratista) return '/contractor/orders';
-        if (user.isPortero) return '/porteria-home';
-        return '/home';
+        return homeRouteForRole(user.role);
       }
+
+      // Segunda línea de defensa: las pantallas ya ocultan botones según el
+      // rol, pero nada impedía llegar aquí por deep link o navegación directa.
+      if (isAuthenticated) {
+        final blocked = redirectForRestrictedRoute(role: user.role, location: loc);
+        if (blocked != null && blocked != loc) return blocked;
+      }
+
       return null;
     },
     refreshListenable: _AuthStateListenable(ref),

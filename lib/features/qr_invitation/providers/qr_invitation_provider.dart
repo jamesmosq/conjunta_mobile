@@ -82,8 +82,9 @@ class QrInvitationNotifier extends Notifier<QrInvitationState> {
     required String documentType,
     required String documentNumber,
     required String validFrom,
-    required String validUntil,
+    String? validUntil,
     String? vehiclePlate,
+    bool isPermanent = false,
   }) async {
     state = state.copyWith(isCreating: true, clearError: true);
     try {
@@ -95,6 +96,7 @@ class QrInvitationNotifier extends Notifier<QrInvitationState> {
             validFrom: validFrom,
             validUntil: validUntil,
             vehiclePlate: vehiclePlate,
+            isPermanent: isPermanent,
           );
       // Prepend to list (newest first)
       state = state.copyWith(
@@ -122,6 +124,7 @@ class QrInvitationNotifier extends Notifier<QrInvitationState> {
             apartamentoId: qr.apartamentoId,
             validoDesde: qr.validoDesde,
             validoHasta: qr.validoHasta,
+            esPermanente: qr.esPermanente,
             estado: 'revocado',
             createdAt: qr.createdAt,
             usadoEn: qr.usadoEn,

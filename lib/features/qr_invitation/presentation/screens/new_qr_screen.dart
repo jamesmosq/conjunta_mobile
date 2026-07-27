@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
+import '../../../../features/auth/models/user_session.dart';
 import '../../../../features/auth/providers/auth_provider.dart';
 import '../../providers/qr_invitation_provider.dart';
 
@@ -22,6 +23,8 @@ class _NewQrScreenState extends ConsumerState<NewQrScreen> {
   String _docType = 'cc';
   DateTime? _validFrom;
   DateTime? _validUntil;
+  int? _selectedApartmentId;
+  bool _isPermanent = false;
 
   static const _docTypes = [
     ('cc', 'Cédula de Ciudadanía'),
@@ -36,6 +39,17 @@ class _NewQrScreenState extends ConsumerState<NewQrScreen> {
     final now = DateTime.now();
     _validFrom = DateTime(now.year, now.month, now.day);
     _validUntil = _validFrom!.add(const Duration(days: 1));
+
+    _selectedApartmentId = ref.read(authStateProvider).value?.apartmentId;
+
+    // La lista completa de apartamentos solo llega en la respuesta de
+    // /auth/me — si la sesión se restauró desde el storage local (reinicio
+    // de la app) el usuario en memoria puede traer solo el apartamento
+    // principal. La refrescamos aquí para que el propietario con 2+
+    // apartamentos vea el selector (Mejora 8 del informe UI-UX).
+    Future.microtask(
+      () => ref.read(authStateProvider.notifier).refreshUser(),
+    );
   }
 
   @override
@@ -50,6 +64,15 @@ class _NewQrScreenState extends ConsumerState<NewQrScreen> {
   Widget build(BuildContext context) {
     final isCreating = ref.watch(qrInvitationProvider).isCreating;
     final fmtDate = DateFormat('dd/MM/yyyy', 'es');
+    final apartments = ref.watch(authStateProvider).value?.apartments ?? const <ApartmentSummary>[];
+
+    // Si el apartamento seleccionado por defecto (sesión restaurada) ya no
+    // está en la lista fresca de /auth/me, o aún no se ha elegido uno,
+    // caemos al primero disponible.
+    if (apartments.isNotEmpty &&
+        !apartments.any((a) => a.id == _selectedApartmentId)) {
+      _selectedApartmentId = apartments.first.id;
+    }
 
     return Scaffold(
       appBar: AppBar(
@@ -64,6 +87,50 @@ class _NewQrScreenState extends ConsumerState<NewQrScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              _SectionLabel('Apartamento'),
+              const SizedBox(height: 12),
+
+              if (apartments.length > 1)
+                DropdownButtonFormField<int>(
+                  value: _selectedApartmentId,
+                  decoration: const InputDecoration(
+                    labelText: 'Generar visita para *',
+                    prefixIcon: Icon(Icons.home_outlined),
+                    border: OutlineInputBorder(),
+                  ),
+                  items: apartments
+                      .map((a) => DropdownMenuItem(
+                            value: a.id,
+                            child: Text(a.label),
+                          ))
+                      .toList(),
+                  onChanged: (v) => setState(() => _selectedApartmentId = v),
+                  validator: (v) => v == null ? 'Selecciona el apartamento' : null,
+                )
+              else
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+                  decoration: BoxDecoration(
+                    color: Colors.grey.shade100,
+                    borderRadius: BorderRadius.circular(4),
+                    border: Border.all(color: Colors.grey.shade300),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(Icons.home_outlined, size: 18, color: Colors.grey.shade600),
+                      const SizedBox(width: 8),
+                      Text(
+                        apartments.isEmpty
+                            ? 'Cargando apartamento…'
+                            : 'Apto ${apartments.first.label}',
+                        style: const TextStyle(fontSize: 14),
+                      ),
+                    ],
+                  ),
+                ),
+              const SizedBox(height: 24),
+
               _SectionLabel('Datos del visitante'),
               const SizedBox(height: 12),
 
@@ -126,29 +193,45 @@ class _NewQrScreenState extends ConsumerState<NewQrScreen> {
               ),
               const SizedBox(height: 24),
 
-              _SectionLabel('Período de validez (máx. 7 días)'),
+              _SectionLabel('Período de validez'),
               const SizedBox(height: 12),
 
-              // Dates row
-              Row(
-                children: [
-                  Expanded(
-                    child: _DateField(
-                      label: 'Válido desde',
-                      value: _validFrom != null ? fmtDate.format(_validFrom!) : null,
-                      onTap: () => _pickDate(isFrom: true),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: _DateField(
-                      label: 'Válido hasta',
-                      value: _validUntil != null ? fmtDate.format(_validUntil!) : null,
-                      onTap: () => _pickDate(isFrom: false),
-                    ),
-                  ),
-                ],
+              SwitchListTile(
+                contentPadding: EdgeInsets.zero,
+                title: const Text('Código permanente'),
+                subtitle: const Text(
+                  'Sin fecha de vencimiento — para un visitante recurrente (ej. empleada doméstica). No se invalida al usarse.',
+                ),
+                value: _isPermanent,
+                onChanged: (v) => setState(() => _isPermanent = v),
               ),
+              const SizedBox(height: 12),
+
+              if (!_isPermanent) ...[
+                Text('Máx. 7 días de vigencia',
+                    style: TextStyle(fontSize: 12, color: Colors.grey.shade600)),
+                const SizedBox(height: 8),
+                // Dates row
+                Row(
+                  children: [
+                    Expanded(
+                      child: _DateField(
+                        label: 'Válido desde',
+                        value: _validFrom != null ? fmtDate.format(_validFrom!) : null,
+                        onTap: () => _pickDate(isFrom: true),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: _DateField(
+                        label: 'Válido hasta',
+                        value: _validUntil != null ? fmtDate.format(_validUntil!) : null,
+                        onTap: () => _pickDate(isFrom: false),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
               const SizedBox(height: 32),
 
               // Error display
@@ -242,14 +325,14 @@ class _NewQrScreenState extends ConsumerState<NewQrScreen> {
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
 
-    if (_validFrom == null || _validUntil == null) {
+    if (_validFrom == null || (!_isPermanent && _validUntil == null)) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Selecciona las fechas de validez.')),
       );
       return;
     }
 
-    if (!_validUntil!.isAfter(_validFrom!)) {
+    if (!_isPermanent && !_validUntil!.isAfter(_validFrom!)) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('La fecha final debe ser posterior a la inicial.'),
@@ -258,8 +341,7 @@ class _NewQrScreenState extends ConsumerState<NewQrScreen> {
       return;
     }
 
-    final user = ref.read(authStateProvider).value;
-    final apartmentId = user?.apartmentId;
+    final apartmentId = _selectedApartmentId ?? ref.read(authStateProvider).value?.apartmentId;
     if (apartmentId == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -272,14 +354,16 @@ class _NewQrScreenState extends ConsumerState<NewQrScreen> {
     // backend la interpreta como medianoche (00:00:00) de ese día y la
     // invitación queda expirada desde el instante en que empieza, no cuando
     // termina, dejando al visitante sin poder entrar el día "hasta".
-    final validUntilEndOfDay = DateTime(
-      _validUntil!.year,
-      _validUntil!.month,
-      _validUntil!.day,
-      23,
-      59,
-      59,
-    );
+    final validUntilEndOfDay = _isPermanent
+        ? null
+        : DateTime(
+            _validUntil!.year,
+            _validUntil!.month,
+            _validUntil!.day,
+            23,
+            59,
+            59,
+          );
 
     final qr = await ref.read(qrInvitationProvider.notifier).create(
           apartmentId: apartmentId,
@@ -287,10 +371,11 @@ class _NewQrScreenState extends ConsumerState<NewQrScreen> {
           documentType: _docType,
           documentNumber: _docNumberController.text.trim(),
           validFrom: _validFrom!.toIso8601String().split('T').first,
-          validUntil: validUntilEndOfDay.toIso8601String(),
+          validUntil: validUntilEndOfDay?.toIso8601String(),
           vehiclePlate: _plateController.text.trim().isEmpty
               ? null
               : _plateController.text.trim().toUpperCase(),
+          isPermanent: _isPermanent,
         );
 
     if (!mounted) return;

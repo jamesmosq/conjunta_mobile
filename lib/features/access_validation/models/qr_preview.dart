@@ -7,6 +7,7 @@ class QrPreview {
     this.placa,
     this.apartamento,
     required this.validoHasta,
+    this.esPermanente = false,
   });
 
   final String uuid;
@@ -16,6 +17,7 @@ class QrPreview {
   final String? placa;
   final String? apartamento;
   final String validoHasta;
+  final bool esPermanente;
 
   String get tipoDocumentoLabel => switch (tipoDocumento) {
         'cc' => 'Cédula de Ciudadanía',
@@ -34,6 +36,7 @@ class QrPreview {
       placa: visitante['placa'] as String?,
       apartamento: json['apartamento'] as String?,
       validoHasta: json['valido_hasta']?.toString() ?? '',
+      esPermanente: json['permanente'] as bool? ?? false,
     );
   }
 }

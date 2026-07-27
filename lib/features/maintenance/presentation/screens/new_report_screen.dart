@@ -2,7 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../../../features/auth/providers/auth_provider.dart';
+import '../../../areas/data/areas_repository.dart';
+import '../../../areas/models/common_area.dart';
 import '../../providers/maintenance_provider.dart';
 
 class NewReportScreen extends ConsumerStatefulWidget {
@@ -16,8 +17,29 @@ class _NewReportScreenState extends ConsumerState<NewReportScreen> {
   final _formKey = GlobalKey<FormState>();
   final _descriptionCtrl = TextEditingController();
 
-  String _locationType = 'apartment';
+  // Mejora 2 informe UI-UX: la administración solo gestiona áreas comunes —
+  // el apartamento privado ya no es una ubicación válida para este reporte.
+  int? _commonAreaId;
   bool _loading = false;
+  List<CommonArea>? _areas;
+  String? _loadError;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadAreas();
+  }
+
+  Future<void> _loadAreas() async {
+    try {
+      final areas = await ref.read(areasRepositoryProvider).getAreas();
+      if (!mounted) return;
+      setState(() => _areas = areas.where((a) => a.isActive).toList());
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _loadError = 'No se pudieron cargar las áreas comunes.');
+    }
+  }
 
   static const _categories = [
     ('plomeria', 'Plomería', Icons.water_drop_outlined),
@@ -38,10 +60,9 @@ class _NewReportScreenState extends ConsumerState<NewReportScreen> {
 
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
-    final apartmentId = ref.read(authStateProvider).value?.apartmentId;
-    if (apartmentId == null) {
+    if (_commonAreaId == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('No tienes un apartamento asignado.')),
+        const SnackBar(content: Text('Selecciona el área común afectada.')),
       );
       return;
     }
@@ -55,8 +76,8 @@ class _NewReportScreenState extends ConsumerState<NewReportScreen> {
 
       await ref.read(maintenanceRequestsProvider.notifier).create({
         'type': 'corrective',
-        'location_type': _locationType,
-        if (_locationType == 'apartment') 'apartment_id': apartmentId,
+        'location_type': 'common_area',
+        'common_area_id': _commonAreaId,
         'description': fullDescription,
       });
       if (mounted) {
@@ -117,25 +138,31 @@ class _NewReportScreenState extends ConsumerState<NewReportScreen> {
             ),
             const SizedBox(height: 20),
 
-            // Ubicación
-            const Text('Ubicación',
+            // Ubicación — solo áreas comunes, la administración no gestiona
+            // daños dentro del apartamento privado (Mejora 2 informe UI-UX).
+            const Text('Área común afectada',
                 style: TextStyle(fontWeight: FontWeight.w600, fontSize: 15)),
             const SizedBox(height: 12),
-            SegmentedButton<String>(
-              segments: const [
-                ButtonSegment(
-                    value: 'apartment',
-                    label: Text('Mi apartamento'),
-                    icon: Icon(Icons.home_outlined)),
-                ButtonSegment(
-                    value: 'common_area',
-                    label: Text('Área común'),
-                    icon: Icon(Icons.business_outlined)),
-              ],
-              selected: {_locationType},
-              onSelectionChanged: (sel) =>
-                  setState(() => _locationType = sel.first),
-            ),
+            if (_loadError != null)
+              Text(_loadError!, style: TextStyle(color: Colors.red.shade700, fontSize: 13))
+            else if (_areas == null)
+              const Center(child: CircularProgressIndicator())
+            else if (_areas!.isEmpty)
+              Text('No hay áreas comunes configuradas.',
+                  style: TextStyle(color: Colors.grey.shade600, fontSize: 13))
+            else
+              DropdownButtonFormField<int>(
+                value: _commonAreaId,
+                decoration: const InputDecoration(
+                  prefixIcon: Icon(Icons.business_outlined),
+                  border: OutlineInputBorder(),
+                ),
+                items: _areas!
+                    .map((a) => DropdownMenuItem(value: a.id, child: Text(a.name)))
+                    .toList(),
+                onChanged: (v) => setState(() => _commonAreaId = v),
+                validator: (v) => v == null ? 'Selecciona el área común' : null,
+              ),
             const SizedBox(height: 20),
 
             // Descripción

@@ -33,8 +33,9 @@ class QrInvitationRepository {
     required String documentType,
     required String documentNumber,
     required String validFrom,
-    required String validUntil,
+    String? validUntil,
     String? vehiclePlate,
+    bool isPermanent = false,
   }) async {
     final response = await _dio.post('/invitaciones-qr', data: {
       'apartment_id': apartmentId,
@@ -42,7 +43,8 @@ class QrInvitationRepository {
       'document_type': documentType,
       'document_number': documentNumber,
       'valid_from': validFrom,
-      'valid_until': validUntil,
+      'is_permanent': isPermanent,
+      if (!isPermanent && validUntil != null) 'valid_until': validUntil,
       if (vehiclePlate != null && vehiclePlate.isNotEmpty)
         'vehicle_plate': vehiclePlate,
     });

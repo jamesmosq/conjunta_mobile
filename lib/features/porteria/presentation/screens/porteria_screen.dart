@@ -415,6 +415,8 @@ class _PackagesTab extends ConsumerWidget {
       BuildContext context, WidgetRef ref) async {
     final descriptionController = TextEditingController();
     final senderController = TextEditingController();
+    final authorizedByController = TextEditingController();
+    String? authorizationMethod;
     ApartmentLookup? apartment;
 
     final created = await showModalBottomSheet<bool>(
@@ -456,6 +458,35 @@ class _PackagesTab extends ConsumerWidget {
                     border: OutlineInputBorder(),
                   ),
                 ),
+                const SizedBox(height: 16),
+                Text(
+                  'Si el residente no sabía que iban a dejar el paquete, registra quién autorizó recibirlo:',
+                  style: Theme.of(ctx).textTheme.bodySmall,
+                ),
+                const SizedBox(height: 8),
+                TextField(
+                  controller: authorizedByController,
+                  decoration: const InputDecoration(
+                    labelText: 'Autorizó (opcional)',
+                    hintText: 'Nombre de quien autorizó',
+                    border: OutlineInputBorder(),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                DropdownButtonFormField<String>(
+                  value: authorizationMethod,
+                  decoration: const InputDecoration(
+                    labelText: 'Medio de autorización (opcional)',
+                    border: OutlineInputBorder(),
+                  ),
+                  items: const [
+                    DropdownMenuItem(value: 'citofono', child: Text('Citófono')),
+                    DropdownMenuItem(value: 'llamada', child: Text('Llamada')),
+                    DropdownMenuItem(value: 'app', child: Text('App')),
+                    DropdownMenuItem(value: 'presencial', child: Text('Presencial')),
+                  ],
+                  onChanged: (v) => setSheetState(() => authorizationMethod = v),
+                ),
                 const SizedBox(height: 20),
                 SizedBox(
                   width: double.infinity,
@@ -475,6 +506,8 @@ class _PackagesTab extends ConsumerWidget {
                               apartmentId: apartment!.id,
                               description: descriptionController.text.trim(),
                               sender: senderController.text.trim(),
+                              authorizedBy: authorizedByController.text.trim(),
+                              authorizationMethod: authorizationMethod,
                             );
                         if (ctx.mounted) Navigator.pop(ctx, true);
                       } catch (_) {
@@ -519,6 +552,7 @@ class _PackageCard extends ConsumerWidget {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           ListTile(
+            onTap: () => _showDetailSheet(context),
             leading: const CircleAvatar(child: Icon(Icons.inventory_2_outlined)),
             title: Text(package.description ?? 'Paquete #${package.id}',
                 style: const TextStyle(fontWeight: FontWeight.w600)),
@@ -547,6 +581,58 @@ class _PackageCard extends ConsumerWidget {
               ),
             ),
         ],
+      ),
+    );
+  }
+
+  static const _methodLabels = {
+    'citofono': 'Citófono',
+    'llamada': 'Llamada',
+    'app': 'App',
+    'presencial': 'Presencial',
+  };
+
+  void _showDetailSheet(BuildContext context) {
+    final fmt = DateFormat('dd/MM/yyyy HH:mm', 'es');
+    showModalBottomSheet(
+      context: context,
+      builder: (ctx) => Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(package.description ?? 'Paquete #${package.id}',
+                style: Theme.of(ctx).textTheme.titleMedium),
+            const SizedBox(height: 12),
+            if (package.sender != null && package.sender!.isNotEmpty)
+              _DetailRow(label: 'Remitente', value: package.sender!),
+            if (package.arrivedAt.isNotEmpty)
+              _DetailRow(
+                label: 'Llegó',
+                value: fmt.format(DateTime.parse(package.arrivedAt)),
+              ),
+            if (!package.isPending)
+              _DetailRow(
+                label: 'Entregado a',
+                value: package.deliveredToName ?? '—',
+              ),
+            if (package.authorizedBy != null && package.authorizedBy!.isNotEmpty)
+              _DetailRow(label: 'Autorizó', value: package.authorizedBy!),
+            if (package.authorizationMethod != null)
+              _DetailRow(
+                label: 'Medio de autorización',
+                value: _methodLabels[package.authorizationMethod] ??
+                    package.authorizationMethod!,
+              ),
+            if ((package.authorizedBy == null || package.authorizedBy!.isEmpty) &&
+                package.authorizationMethod == null)
+              Text(
+                'Nadie registró autorización especial para este paquete.',
+                style: Theme.of(ctx).textTheme.bodySmall,
+              ),
+          ],
+        ),
       ),
     );
   }
@@ -608,6 +694,33 @@ class _PackageCard extends ConsumerWidget {
 }
 
 // ── Shared helpers ────────────────────────────────────────────────────────────
+
+class _DetailRow extends StatelessWidget {
+  const _DetailRow({required this.label, required this.value});
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 140,
+            child: Text(label,
+                style: Theme.of(context)
+                    .textTheme
+                    .bodySmall
+                    ?.copyWith(color: Colors.grey.shade600)),
+          ),
+          Expanded(child: Text(value, style: Theme.of(context).textTheme.bodyMedium)),
+        ],
+      ),
+    );
+  }
+}
 
 Widget _emptyState(String message, IconData icon) {
   return Center(

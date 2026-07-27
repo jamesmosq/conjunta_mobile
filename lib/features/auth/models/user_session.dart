@@ -10,6 +10,22 @@ class UserSession {
   final AuthUser user;
 }
 
+class ApartmentSummary {
+  const ApartmentSummary({required this.id, required this.number, this.tower});
+
+  factory ApartmentSummary.fromJson(Map<String, dynamic> json) => ApartmentSummary(
+        id: json['id'] as int,
+        number: json['number'] as String? ?? '',
+        tower: json['tower'] as String?,
+      );
+
+  final int id;
+  final String number;
+  final String? tower;
+
+  String get label => tower != null && tower!.isNotEmpty ? '$tower - $number' : number;
+}
+
 class AuthUser {
   const AuthUser({
     required this.id,
@@ -18,6 +34,7 @@ class AuthUser {
     required this.role,
     this.tenantId,
     this.apartmentId,
+    this.apartments = const [],
     this.fcmToken,
   });
 
@@ -28,6 +45,10 @@ class AuthUser {
         role: json['role'] as String? ?? '',
         tenantId: json['tenant_id'] as int?,
         apartmentId: json['apartment_id'] as int?,
+        apartments: (json['apartments'] as List<dynamic>?)
+                ?.map((a) => ApartmentSummary.fromJson(a as Map<String, dynamic>))
+                .toList() ??
+            const [],
       );
 
   final int id;
@@ -36,6 +57,7 @@ class AuthUser {
   final String role;
   final int? tenantId;
   final int? apartmentId;
+  final List<ApartmentSummary> apartments;
   final String? fcmToken;
 
   bool get isCopropietario => role == 'copropietario';

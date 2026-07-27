@@ -8,6 +8,7 @@ class StatusBadge extends StatelessWidget {
 
   static const _config = {
     'activo': (Color(0xFF2E7D32), Color(0xFFE8F5E9), 'Activo'),
+    'permanente': (Color(0xFF1565C0), Color(0xFFE3F2FD), 'Permanente'),
     'usado': (Color(0xFF1565C0), Color(0xFFE3F2FD), 'Usado'),
     'expirado': (Color(0xFFE65100), Color(0xFFFFF3E0), 'Expirado'),
     'revocado': (Color(0xFFC62828), Color(0xFFFFEBEE), 'Revocado'),

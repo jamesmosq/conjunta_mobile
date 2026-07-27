@@ -202,11 +202,15 @@ class PackagesNotifier extends AsyncNotifier<List<Package>> {
     required int apartmentId,
     required String description,
     String? sender,
+    String? authorizedBy,
+    String? authorizationMethod,
   }) async {
     final created = await ref.read(porteriaRepositoryProvider).createPackage(
           apartmentId: apartmentId,
           description: description,
           sender: sender,
+          authorizedBy: authorizedBy,
+          authorizationMethod: authorizationMethod,
         );
     state = AsyncData([created, ...state.value ?? []]);
   }

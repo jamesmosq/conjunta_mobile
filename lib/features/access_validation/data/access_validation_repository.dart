@@ -24,8 +24,13 @@ class AccessValidationRepository {
     return QrPreview.fromJson(data);
   }
 
-  Future<void> confirmByUuid(String uuid, String token) async {
-    await _dio.post('/qr/$uuid/usar', data: {'token': token});
+  /// Retorna el identificador de la celda asignada (ej. "V-03"), o null si
+  /// el visitante no traía vehículo / no había cupo — el vigilante necesita
+  /// este dato para indicarle al visitante dónde parquear.
+  Future<String?> confirmByUuid(String uuid, String token) async {
+    final response = await _dio.post('/qr/$uuid/usar', data: {'token': token});
+    final raw = response.data as Map<String, dynamic>?;
+    return raw?['parking_spot'] as String?;
   }
 
   Future<QrPreview> previewByCode(String code) async {
@@ -35,8 +40,10 @@ class AccessValidationRepository {
     return QrPreview.fromJson(data);
   }
 
-  Future<void> confirmByCode(String code) async {
-    await _dio.post('/qr/code/$code/usar');
+  Future<String?> confirmByCode(String code) async {
+    final response = await _dio.post('/qr/code/$code/usar');
+    final raw = response.data as Map<String, dynamic>?;
+    return raw?['parking_spot'] as String?;
   }
 
   /// Registra la salida del visitante repitiendo el mismo código corto

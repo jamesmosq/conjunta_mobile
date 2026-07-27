@@ -107,6 +107,10 @@ class _QrDetailScreenState extends ConsumerState<QrDetailScreen> {
                 if (current.visitante.placa != null &&
                     current.visitante.placa!.isNotEmpty)
                   ('Vehículo', current.visitante.placa!),
+                if (current.apartamentoNumero != null)
+                  ('Apartamento', 'Apto ${current.apartamentoNumero}'),
+                if (current.autorizadoPor != null)
+                  ('Autorizado por', current.autorizadoPor!),
               ],
             ),
             const SizedBox(height: 12),
@@ -114,7 +118,8 @@ class _QrDetailScreenState extends ConsumerState<QrDetailScreen> {
               title: 'Vigencia',
               rows: [
                 ('Desde', _formatDate(current.validoDesde)),
-                ('Hasta', _formatDate(current.validoHasta)),
+                ('Hasta',
+                    current.esPermanente ? 'Sin vencimiento' : _formatDate(current.validoHasta ?? '')),
                 if (current.usadoEn != null)
                   ('Usado el', _formatDate(current.usadoEn!)),
                 if (current.revocadoEn != null)
@@ -141,10 +146,12 @@ class _QrDetailScreenState extends ConsumerState<QrDetailScreen> {
       final fmt = DateFormat('dd/MM/yyyy', 'es');
 
       String fromStr = '';
-      String untilStr = '';
+      String untilStr = current.esPermanente ? 'sin vencimiento' : '';
       try {
         fromStr = fmt.format(DateTime.parse(current.validoDesde));
-        untilStr = fmt.format(DateTime.parse(current.validoHasta));
+        if (!current.esPermanente && current.validoHasta != null) {
+          untilStr = fmt.format(DateTime.parse(current.validoHasta!));
+        }
       } catch (_) {}
 
       final hasCode = current.codigo != null && current.codigo!.isNotEmpty;

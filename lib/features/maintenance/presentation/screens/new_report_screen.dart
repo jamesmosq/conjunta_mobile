@@ -1,10 +1,15 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:image_picker/image_picker.dart';
 
 import '../../../areas/data/areas_repository.dart';
 import '../../../areas/models/common_area.dart';
 import '../../providers/maintenance_provider.dart';
+
+const _maxPhotos = 5;
 
 class NewReportScreen extends ConsumerStatefulWidget {
   const NewReportScreen({super.key});
@@ -23,6 +28,10 @@ class _NewReportScreenState extends ConsumerState<NewReportScreen> {
   bool _loading = false;
   List<CommonArea>? _areas;
   String? _loadError;
+
+  // BUG-07 (QA 11 ago 2026): no había forma de adjuntar fotos al reporte —
+  // ni siquiera una. Se agrega selector de hasta 5 imágenes.
+  final List<File> _photos = [];
 
   @override
   void initState() {
@@ -58,6 +67,26 @@ class _NewReportScreenState extends ConsumerState<NewReportScreen> {
     super.dispose();
   }
 
+  Future<void> _takePhoto() async {
+    if (_photos.length >= _maxPhotos) return;
+    final xFile = await ImagePicker().pickImage(
+      source: ImageSource.camera,
+      imageQuality: 80,
+      maxWidth: 1920,
+    );
+    if (xFile != null) setState(() => _photos.add(File(xFile.path)));
+  }
+
+  Future<void> _pickPhotos() async {
+    if (_photos.length >= _maxPhotos) return;
+    final xFiles = await ImagePicker().pickMultiImage(imageQuality: 80);
+    if (xFiles.isEmpty) return;
+    setState(() {
+      final remaining = _maxPhotos - _photos.length;
+      _photos.addAll(xFiles.take(remaining).map((x) => File(x.path)));
+    });
+  }
+
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
     if (_commonAreaId == null) {
@@ -79,7 +108,7 @@ class _NewReportScreenState extends ConsumerState<NewReportScreen> {
         'location_type': 'common_area',
         'common_area_id': _commonAreaId,
         'description': fullDescription,
-      });
+      }, photos: _photos.isEmpty ? null : _photos);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Reporte enviado correctamente')),
@@ -185,6 +214,31 @@ class _NewReportScreenState extends ConsumerState<NewReportScreen> {
                 return null;
               },
             ),
+            const SizedBox(height: 20),
+
+            // Fotos (opcional)
+            Row(
+              children: [
+                const Text('Fotos (opcional)',
+                    style: TextStyle(fontWeight: FontWeight.w600, fontSize: 15)),
+                const SizedBox(width: 8),
+                Text('${_photos.length}/$_maxPhotos',
+                    style: TextStyle(color: Colors.grey.shade600, fontSize: 12)),
+              ],
+            ),
+            const SizedBox(height: 4),
+            Text(
+              'Hasta $_maxPhotos fotos para dar más contexto del problema.',
+              style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+            ),
+            const SizedBox(height: 10),
+            _PhotoGrid(
+              photos: _photos,
+              maxPhotos: _maxPhotos,
+              onTakePhoto: _takePhoto,
+              onPickPhotos: _pickPhotos,
+              onRemove: (i) => setState(() => _photos.removeAt(i)),
+            ),
             const SizedBox(height: 32),
 
             FilledButton.icon(
@@ -201,6 +255,91 @@ class _NewReportScreenState extends ConsumerState<NewReportScreen> {
             const SizedBox(height: 16),
           ],
         ),
+      ),
+    );
+  }
+}
+
+class _PhotoGrid extends StatelessWidget {
+  const _PhotoGrid({
+    required this.photos,
+    required this.maxPhotos,
+    required this.onTakePhoto,
+    required this.onPickPhotos,
+    required this.onRemove,
+  });
+
+  final List<File> photos;
+  final int maxPhotos;
+  final VoidCallback onTakePhoto;
+  final VoidCallback onPickPhotos;
+  final void Function(int index) onRemove;
+
+  @override
+  Widget build(BuildContext context) {
+    final canAddMore = photos.length < maxPhotos;
+
+    return Wrap(
+      spacing: 10,
+      runSpacing: 10,
+      children: [
+        for (var i = 0; i < photos.length; i++)
+          Stack(
+            children: [
+              ClipRRect(
+                borderRadius: BorderRadius.circular(10),
+                child: Image.file(
+                  photos[i],
+                  height: 90,
+                  width: 90,
+                  fit: BoxFit.cover,
+                ),
+              ),
+              Positioned(
+                top: 4,
+                right: 4,
+                child: GestureDetector(
+                  onTap: () => onRemove(i),
+                  child: Container(
+                    padding: const EdgeInsets.all(4),
+                    decoration: const BoxDecoration(
+                      color: Colors.black54,
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(Icons.close, color: Colors.white, size: 14),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        if (canAddMore) ...[
+          _AddPhotoTile(icon: Icons.camera_alt_outlined, onTap: onTakePhoto),
+          _AddPhotoTile(icon: Icons.photo_library_outlined, onTap: onPickPhotos),
+        ],
+      ],
+    );
+  }
+}
+
+class _AddPhotoTile extends StatelessWidget {
+  const _AddPhotoTile({required this.icon, required this.onTap});
+
+  final IconData icon;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(10),
+      child: Container(
+        height: 90,
+        width: 90,
+        decoration: BoxDecoration(
+          border: Border.all(color: Colors.grey.shade400),
+          borderRadius: BorderRadius.circular(10),
+        ),
+        child: Icon(icon, color: Colors.grey.shade600),
       ),
     );
   }

@@ -84,7 +84,18 @@ class _NewPreAuthScreenState extends ConsumerState<NewPreAuthScreen> {
     final initial = isFrom
         ? (_allowedFrom ?? const TimeOfDay(hour: 8, minute: 0))
         : (_allowedUntil ?? const TimeOfDay(hour: 18, minute: 0));
-    final picked = await showTimePicker(context: context, initialTime: initial);
+    final picked = await showTimePicker(
+      context: context,
+      initialTime: initial,
+      // BUG-06 (QA 11 ago 2026): el selector heredaba el formato 24h del
+      // dispositivo si el usuario lo tenía así configurado, sin mostrar
+      // nunca AM/PM. Se fuerza el formato 12h aquí para que el picker
+      // siempre ofrezca AM/PM sin importar el ajuste del teléfono.
+      builder: (context, child) => MediaQuery(
+        data: MediaQuery.of(context).copyWith(alwaysUse24HourFormat: false),
+        child: child!,
+      ),
+    );
     if (picked != null) {
       setState(() {
         if (isFrom) {
@@ -96,8 +107,18 @@ class _NewPreAuthScreenState extends ConsumerState<NewPreAuthScreen> {
     }
   }
 
+  /// Formato 24h "HH:mm" para el backend (date_format:H:i).
   String _formatTime(TimeOfDay t) =>
       '${t.hour.toString().padLeft(2, '0')}:${t.minute.toString().padLeft(2, '0')}';
+
+  /// Formato 12h con AM/PM para mostrarle al usuario lo que seleccionó — fijo,
+  /// sin depender de si el teléfono tiene activado el formato 24h.
+  String _displayTime(TimeOfDay t) {
+    final hour12 = t.hourOfPeriod == 0 ? 12 : t.hourOfPeriod;
+    final minute = t.minute.toString().padLeft(2, '0');
+    final period = t.period == DayPeriod.am ? 'a. m.' : 'p. m.';
+    return '$hour12:$minute $period';
+  }
 
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
@@ -109,9 +130,18 @@ class _NewPreAuthScreenState extends ConsumerState<NewPreAuthScreen> {
         );
         return;
       }
-      if (_allowedFrom == null || _allowedUntil == null) {
+      // BUG-06 (QA 11 ago 2026): antes exigía siempre "Desde" y "Hasta",
+      // sin dejar crear una recurrencia sin restricción de horario (ej.
+      // empleada doméstica con acceso libre todo el día). El backend ya
+      // trata allowed_from/allowed_until nulos como "sin restricción"
+      // (PreAuthorization::isValidNow()), así que aquí solo se exige
+      // completar ambos si el usuario ya empezó a llenar uno.
+      final onlyOneTimeSet = (_allowedFrom == null) != (_allowedUntil == null);
+      if (onlyOneTimeSet) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Selecciona las horas permitidas.')),
+          const SnackBar(
+            content: Text('Completa "Desde" y "Hasta", o deja ambos vacíos para acceso libre todo el día.'),
+          ),
         );
         return;
       }
@@ -141,8 +171,8 @@ class _NewPreAuthScreenState extends ConsumerState<NewPreAuthScreen> {
         'is_recurring': _isRecurring,
         if (_isRecurring) ...{
           'allowed_days': days,
-          'allowed_from': _formatTime(_allowedFrom!),
-          'allowed_until': _formatTime(_allowedUntil!),
+          if (_allowedFrom != null) 'allowed_from': _formatTime(_allowedFrom!),
+          if (_allowedUntil != null) 'allowed_until': _formatTime(_allowedUntil!),
         },
       });
       if (mounted) {
@@ -317,16 +347,24 @@ class _NewPreAuthScreenState extends ConsumerState<NewPreAuthScreen> {
                   );
                 }),
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 4),
+              Text(
+                'Horario (opcional) — déjalo vacío para acceso libre todo el día en los días seleccionados.',
+                style: TextStyle(fontSize: 12, color: Theme.of(context).hintColor),
+              ),
+              const SizedBox(height: 12),
               Row(
                 children: [
                   Expanded(
                     child: _TimeTile(
                       label: 'Desde',
                       value: _allowedFrom != null
-                          ? _formatTime(_allowedFrom!)
+                          ? _displayTime(_allowedFrom!)
                           : null,
                       onTap: () => _pickTime(isFrom: true),
+                      onClear: _allowedFrom != null
+                          ? () => setState(() => _allowedFrom = null)
+                          : null,
                     ),
                   ),
                   const SizedBox(width: 12),
@@ -334,9 +372,12 @@ class _NewPreAuthScreenState extends ConsumerState<NewPreAuthScreen> {
                     child: _TimeTile(
                       label: 'Hasta',
                       value: _allowedUntil != null
-                          ? _formatTime(_allowedUntil!)
+                          ? _displayTime(_allowedUntil!)
                           : null,
                       onTap: () => _pickTime(isFrom: false),
+                      onClear: _allowedUntil != null
+                          ? () => setState(() => _allowedUntil = null)
+                          : null,
                     ),
                   ),
                 ],
@@ -408,11 +449,13 @@ class _TimeTile extends StatelessWidget {
     required this.label,
     required this.value,
     required this.onTap,
+    this.onClear,
   });
 
   final String label;
   final String? value;
   final VoidCallback onTap;
+  final VoidCallback? onClear;
 
   @override
   Widget build(BuildContext context) {
@@ -440,15 +483,22 @@ class _TimeTile extends StatelessWidget {
               children: [
                 const Icon(Icons.access_time_outlined, size: 16),
                 const SizedBox(width: 4),
-                Text(
-                  value ?? '--:--',
-                  style: TextStyle(
-                    fontWeight: FontWeight.w600,
-                    color: value != null
-                        ? Theme.of(context).colorScheme.onSurface
-                        : Theme.of(context).hintColor,
+                Expanded(
+                  child: Text(
+                    value ?? 'Sin restricción',
+                    style: TextStyle(
+                      fontWeight: FontWeight.w600,
+                      color: value != null
+                          ? Theme.of(context).colorScheme.onSurface
+                          : Theme.of(context).hintColor,
+                    ),
                   ),
                 ),
+                if (onClear != null)
+                  InkWell(
+                    onTap: onClear,
+                    child: const Icon(Icons.clear, size: 16),
+                  ),
               ],
             ),
           ],

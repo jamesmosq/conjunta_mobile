@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../data/maintenance_repository.dart';
@@ -21,10 +23,10 @@ class MaintenanceRequestsNotifier
         () => ref.read(maintenanceRepositoryProvider).getMyRequests());
   }
 
-  Future<void> create(Map<String, dynamic> data) async {
+  Future<void> create(Map<String, dynamic> data, {List<File>? photos}) async {
     final request = await ref
         .read(maintenanceRepositoryProvider)
-        .createRequest(data);
+        .createRequest(data, photos: photos);
     state = AsyncData([request, ...?state.value]);
   }
 }

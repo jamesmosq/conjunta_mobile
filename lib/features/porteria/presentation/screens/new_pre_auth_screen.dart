@@ -87,13 +87,21 @@ class _NewPreAuthScreenState extends ConsumerState<NewPreAuthScreen> {
     final picked = await showTimePicker(
       context: context,
       initialTime: initial,
-      // BUG-06 (QA 11 ago 2026): el selector heredaba el formato 24h del
-      // dispositivo si el usuario lo tenía así configurado, sin mostrar
-      // nunca AM/PM. Se fuerza el formato 12h aquí para que el picker
-      // siempre ofrezca AM/PM sin importar el ajuste del teléfono.
-      builder: (context, child) => MediaQuery(
-        data: MediaQuery.of(context).copyWith(alwaysUse24HourFormat: false),
-        child: child!,
+      // BUG-06 (QA 11 ago 2026): "alwaysUse24HourFormat: false" NO bastaba
+      // -- Flutter solo usa esa bandera para FORZAR 24h; en falso, cae al
+      // formato "natural" del locale, y el locale es_CO usa 24h igual que
+      // el ajuste del teléfono. Confirmado en emulador: seguía mostrando el
+      // dial de 0-23 sin AM/PM. Hace falta forzar además el locale del
+      // picker a uno que sea 12h por convención (en_US) -- ese es el truco
+      // estándar de Flutter para este problema. Las etiquetas AM/PM quedan
+      // en inglés, pero el resto de la app sigue en español.
+      builder: (context, child) => Localizations.override(
+        context: context,
+        locale: const Locale('en', 'US'),
+        child: MediaQuery(
+          data: MediaQuery.of(context).copyWith(alwaysUse24HourFormat: false),
+          child: child!,
+        ),
       ),
     );
     if (picked != null) {

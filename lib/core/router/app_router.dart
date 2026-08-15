@@ -91,12 +91,24 @@ import '../widgets/app_shell.dart';
 import 'role_route_guard.dart';
 
 final routerProvider = Provider<GoRouter>((ref) {
-  final authState = ref.watch(authStateProvider);
-
   return GoRouter(
     navigatorKey: AppConfig.navigatorKey,
     initialLocation: '/login',
     redirect: (context, state) {
+      // BUG-03 (QA 11 ago 2026): "ref.watch(authStateProvider)" aquí arriba
+      // hacía que routerProvider (un Provider normal) se reconstruyera --
+      // es decir, se creara un GoRouter NUEVO, con el stack de navegación
+      // reiniciado en initialLocation ("/login") -- cada vez que
+      // authStateProvider cambiaba. NewQrScreen.initState() llama
+      // refreshUser() al entrar (para refrescar la lista de apartamentos),
+      // lo que disparaba justo ese rebuild: la pantalla de "Generar QR" se
+      // abría y, en el mismo frame en que el refresh terminaba, el router
+      // entero se recreaba y el redirect (autenticado + no está en ruta
+      // pública) lo mandaba de vuelta a home -- "se abre y se cierra sola".
+      // refreshListenable ya existe para esto: re-evalúa el redirect del
+      // MISMO GoRouter sin recrearlo, así que basta con leer el estado
+      // fresco aquí adentro en vez de capturarlo por fuera con watch().
+      final authState = ref.read(authStateProvider);
       final isLoading = authState.isLoading;
       if (isLoading) return null;
 

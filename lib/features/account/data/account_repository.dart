@@ -30,7 +30,7 @@ class AccountRepository {
 
   Future<Uint8List> downloadPazYSalvo(int apartmentId) async {
     final response = await _dio.get(
-      '/apartments/$apartmentId/paz-y-salvo',
+      '/apartments/$apartmentId/debt-certificate',
       options: Options(responseType: ResponseType.bytes),
     );
     return Uint8List.fromList(response.data as List<int>);

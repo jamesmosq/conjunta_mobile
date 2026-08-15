@@ -40,8 +40,17 @@ final preAuthorizationsProvider =
 class PreAuthNotifier extends AsyncNotifier<List<PreAuthorization>> {
   @override
   Future<List<PreAuthorization>> build() async {
-    final apartmentId =
-        ref.read(authStateProvider).value?.apartmentId;
+    final user = ref.read(authStateProvider).value;
+
+    // Portero/administrador consultan todas las pre-autorizaciones activas
+    // del conjunto (no tienen un apartamento propio); el copropietario solo
+    // ve las suyas. Antes esta rama no existía y el portero siempre recibía
+    // una lista vacía porque apartmentId era null para su rol.
+    if (user != null && (user.isPortero || user.isAdministrador)) {
+      return ref.read(porteriaRepositoryProvider).getAllActivePreAuthorizations();
+    }
+
+    final apartmentId = user?.apartmentId;
     if (apartmentId == null) return [];
     return ref
         .read(porteriaRepositoryProvider)

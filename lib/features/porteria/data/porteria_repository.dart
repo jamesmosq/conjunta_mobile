@@ -30,6 +30,22 @@ class PorteriaRepository {
         .toList();
   }
 
+  /// Listado tenant-wide para portero/administrador — a diferencia de
+  /// [getPreAuthorizations], no requiere conocer el apartamento de antemano.
+  Future<List<PreAuthorization>> getAllActivePreAuthorizations({String? search}) async {
+    final response = await _dio.get(
+      '/pre-authorizations',
+      queryParameters: {
+        if (search != null && search.isNotEmpty) 'search': search,
+      },
+    );
+    final raw = response.data;
+    final list = raw is Map ? (raw['data'] ?? raw) : raw;
+    return (list as List)
+        .map((e) => PreAuthorization.fromJson(e as Map<String, dynamic>))
+        .toList();
+  }
+
   Future<PreAuthorization> createPreAuthorization(
       Map<String, dynamic> data) async {
     final response = await _dio.post('/pre-authorizations', data: data);

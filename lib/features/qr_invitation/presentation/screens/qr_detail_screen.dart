@@ -13,9 +13,18 @@ import '../../providers/qr_invitation_provider.dart';
 import '../widgets/status_badge.dart';
 
 class QrDetailScreen extends ConsumerStatefulWidget {
-  const QrDetailScreen({super.key, required this.qr});
+  const QrDetailScreen({super.key, required this.qrId, this.qr});
 
-  final VisitQrCode qr;
+  /// Fuente de verdad para localizar la invitación — a diferencia de `qr`
+  /// (recibido vía `extra` de GoRouter), el id de la ruta sobrevive aunque
+  /// `extra` se pierda por un `refreshListenable` disparado justo después de
+  /// navegar (ej. el `refreshUser()` de NewQrScreen), que antes hacía caer
+  /// esta pantalla de vuelta al listado sin avisar.
+  final int qrId;
+
+  /// Valor inicial opcional para pintar de inmediato sin esperar al provider
+  /// (ej. justo tras crear la invitación). Si no llega, se busca por `qrId`.
+  final VisitQrCode? qr;
 
   @override
   ConsumerState<QrDetailScreen> createState() => _QrDetailScreenState();
@@ -30,8 +39,30 @@ class _QrDetailScreenState extends ConsumerState<QrDetailScreen> {
     // Watch for state changes (e.g. revoke updates status)
     final state = ref.watch(qrInvitationProvider);
     final current =
-        state.qrCodes.where((q) => q.id == widget.qr.id).firstOrNull ??
+        state.qrCodes.where((q) => q.id == widget.qrId).firstOrNull ??
             widget.qr;
+
+    if (current == null) {
+      return Scaffold(
+        appBar: AppBar(
+          title: const Text('Invitación QR'),
+          backgroundColor: Colors.deepPurple.shade700,
+          foregroundColor: Colors.white,
+        ),
+        body: Center(
+          child: state.isLoading
+              ? const CircularProgressIndicator()
+              : Padding(
+                  padding: const EdgeInsets.all(24),
+                  child: Text(
+                    'No se encontró la invitación. Vuelve al listado e intenta de nuevo.',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(color: Colors.grey.shade600),
+                  ),
+                ),
+        ),
+      );
+    }
 
     return Scaffold(
       appBar: AppBar(

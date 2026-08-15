@@ -280,7 +280,10 @@ class _PreAuthTab extends ConsumerWidget {
           onRefresh: () => ref.read(preAuthorizationsProvider.notifier).refresh(),
           child: list.isEmpty
               ? _emptyState(
-                  'No tienes pre-autorizaciones activas', Icons.verified_user_outlined)
+                  isPortero
+                      ? 'No hay pre-autorizaciones activas'
+                      : 'No tienes pre-autorizaciones activas',
+                  Icons.verified_user_outlined)
               : ListView.separated(
                   padding: const EdgeInsets.fromLTRB(16, 16, 16, 80),
                   itemCount: list.length,
@@ -308,6 +311,9 @@ class _PreAuthCard extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final fmt = DateFormat('dd/MM/yyyy', 'es');
     final subtitle = _buildSubtitle(fmt);
+    // Eliminar es solo de administrador (ver PreAuthorizationController::destroy,
+    // que usa ApartmentPolicy::update) — el portero solo consulta.
+    final isPortero = ref.watch(authStateProvider).value?.isPortero ?? false;
     return Card(
       child: ListTile(
         leading: CircleAvatar(
@@ -317,39 +323,49 @@ class _PreAuthCard extends ConsumerWidget {
                 : Icons.verified_user_outlined,
           ),
         ),
-        title: Text(auth.visitorName,
-            style: const TextStyle(fontWeight: FontWeight.w600)),
-        subtitle: Text(subtitle),
-        trailing: IconButton(
-          icon: const Icon(Icons.delete_outline, color: Colors.red),
-          onPressed: () async {
-            final confirm = await showDialog<bool>(
-              context: context,
-              builder: (ctx) => AlertDialog(
-                title: const Text('Eliminar pre-autorización'),
-                content: Text('¿Deseas eliminar la pre-autorización de ${auth.visitorName}?'),
-                actions: [
-                  TextButton(
-                      onPressed: () => Navigator.pop(ctx, false),
-                      child: const Text('Cancelar')),
-                  FilledButton(
-                      onPressed: () => Navigator.pop(ctx, true),
-                      child: const Text('Eliminar')),
-                ],
-              ),
-            );
-            if (confirm == true && context.mounted) {
-              await ref
-                  .read(preAuthorizationsProvider.notifier)
-                  .delete(auth.id);
-              if (context.mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Pre-autorización eliminada')),
-                );
-              }
-            }
-          },
+        title: Text(
+          auth.apartmentNumber != null
+              ? '${auth.visitorName} · Apto ${auth.apartmentNumber}'
+              : auth.visitorName,
+          style: const TextStyle(fontWeight: FontWeight.w600),
         ),
+        subtitle: Text(
+          auth.authorizedByName != null
+              ? '$subtitle · Autorizó: ${auth.authorizedByName}'
+              : subtitle,
+        ),
+        trailing: isPortero
+            ? null
+            : IconButton(
+                icon: const Icon(Icons.delete_outline, color: Colors.red),
+                onPressed: () async {
+                  final confirm = await showDialog<bool>(
+                    context: context,
+                    builder: (ctx) => AlertDialog(
+                      title: const Text('Eliminar pre-autorización'),
+                      content: Text('¿Deseas eliminar la pre-autorización de ${auth.visitorName}?'),
+                      actions: [
+                        TextButton(
+                            onPressed: () => Navigator.pop(ctx, false),
+                            child: const Text('Cancelar')),
+                        FilledButton(
+                            onPressed: () => Navigator.pop(ctx, true),
+                            child: const Text('Eliminar')),
+                      ],
+                    ),
+                  );
+                  if (confirm == true && context.mounted) {
+                    await ref
+                        .read(preAuthorizationsProvider.notifier)
+                        .delete(auth.id);
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Pre-autorización eliminada')),
+                      );
+                    }
+                  }
+                },
+              ),
       ),
     );
   }

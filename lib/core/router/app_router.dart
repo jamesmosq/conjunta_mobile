@@ -262,9 +262,9 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/qr-invitations/:id',
         builder: (context, state) {
+          final id = int.tryParse(state.pathParameters['id'] ?? '') ?? 0;
           final qr = state.extra as VisitQrCode?;
-          if (qr == null) return const QrHistoryScreen();
-          return QrDetailScreen(qr: qr);
+          return QrDetailScreen(qrId: id, qr: qr);
         },
       ),
 

@@ -2,6 +2,8 @@ class PreAuthorization {
   const PreAuthorization({
     required this.id,
     this.apartmentId,
+    this.apartmentNumber,
+    this.authorizedByName,
     required this.visitorName,
     this.documentNumber,
     this.photoUrl,
@@ -19,10 +21,15 @@ class PreAuthorization {
     this.isValidNow = false,
   });
 
-  factory PreAuthorization.fromJson(Map<String, dynamic> json) =>
-      PreAuthorization(
+  factory PreAuthorization.fromJson(Map<String, dynamic> json) {
+    final apartamento = json['apartamento'] as Map<String, dynamic>?;
+    final creadoPor = json['creado_por'] as Map<String, dynamic>?;
+
+    return PreAuthorization(
         id: json['id'] as int,
         apartmentId: json['apartment_id'] as int?,
+        apartmentNumber: apartamento?['numero'] as String?,
+        authorizedByName: creadoPor?['nombre'] as String?,
         visitorName: json['visitor_name'] as String? ?? '',
         documentNumber: json['document_number'] as String?,
         photoUrl: json['photo_url'] as String?,
@@ -41,9 +48,12 @@ class PreAuthorization {
         expiresAt: json['expires_at']?.toString(),
         isValidNow: json['is_valid_now'] as bool? ?? false,
       );
+  }
 
   final int id;
   final int? apartmentId;
+  final String? apartmentNumber;
+  final String? authorizedByName;
   final String visitorName;
   final String? documentNumber;
   final String? photoUrl;

@@ -123,19 +123,39 @@ class _RouteCard extends StatelessWidget {
             ],
             const SizedBox(height: 10),
             Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                _InfoChip(
-                  icon: Icons.location_on,
-                  label: '${route.checkpoints.length} puntos',
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    _InfoChip(
+                      icon: Icons.location_on,
+                      label: '${route.checkpoints.length} puntos',
+                    ),
+                    if (route.estimatedMinutes != null) ...[
+                      const SizedBox(width: 8),
+                      _InfoChip(
+                        icon: Icons.timer,
+                        label: '~${route.estimatedMinutes} min',
+                      ),
+                    ],
+                  ],
                 ),
-                if (route.estimatedMinutes != null) ...[
-                  const SizedBox(width: 8),
-                  _InfoChip(
-                    icon: Icons.timer,
-                    label: '~${route.estimatedMinutes} min',
-                  ),
-                ],
-                const Spacer(),
+                // BUG-46 (QA 17 ago 2026): app_theme.dart define
+                // filledButtonTheme con minimumSize: Size(double.infinity,
+                // 50) -- funciona en el resto de la app porque ahí
+                // FilledButton siempre es hijo único de una Column (botón a
+                // ancho completo). Este es el único lugar donde un
+                // FilledButton va como hijo NO flexible de un Row: un Row
+                // le da a sus hijos no-flex un ancho no acotado
+                // (maxWidth: infinity) para poder medirlos, y un
+                // minimumSize.width también infinito choca con eso --
+                // Flutter lanza "BoxConstraints forces an infinite width"
+                // en cada frame. La ronda nunca llegaba a pintarse --
+                // pantalla en blanco sin spinner ni error visible, se
+                // percibía como "no hay opción para iniciar ronda".
+                // Se anula minimumSize a Size.zero solo para este botón
+                // (el style a nivel de widget gana sobre el del tema).
                 FilledButton.icon(
                   onPressed: isStarting ? null : onStart,
                   icon: isStarting
@@ -151,6 +171,7 @@ class _RouteCard extends StatelessWidget {
                   label: const Text('Iniciar'),
                   style: FilledButton.styleFrom(
                     backgroundColor: Colors.indigo.shade700,
+                    minimumSize: Size.zero,
                   ),
                 ),
               ],

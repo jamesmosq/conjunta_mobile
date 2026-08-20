@@ -31,6 +31,13 @@ class MaintenanceRepository {
     Map<String, dynamic> data, {
     List<File>? photos,
   }) async {
+    // FormData.fromMap por defecto usa ListFormat.multi, que repite el
+    // campo "photos" sin corchetes (photos=a, photos=b, photos=c). PHP solo
+    // conserva la ULTIMA aparición de un campo repetido sin "[]" — el
+    // backend recibía un solo archivo (no un array) y Laravel rechazaba la
+    // solicitud completa con 422 "photos debe ser un array", incluso con 1
+    // sola foto. multiCompatible envía "photos[]", que PHP sí arma como
+    // array.
     final payload = (photos == null || photos.isEmpty)
         ? data
         : FormData.fromMap({
@@ -42,7 +49,7 @@ class MaintenanceRepository {
                   filename: 'reporte_${DateTime.now().millisecondsSinceEpoch}_$i.jpg',
                 ),
             ],
-          });
+          }, ListFormat.multiCompatible);
 
     final response = await _dio.post('/maintenance-requests', data: payload);
     final raw = response.data;

@@ -21,7 +21,10 @@ class MaintenanceRequest {
         status: json['status'] as String? ?? 'pending',
         createdAt: json['created_at'] as String? ?? '',
         apartmentId: json['apartment_id'] as int?,
-        photoUrls: (json['photo_urls'] as List?)
+        // El backend (MaintenanceRequestResource) devuelve la clave 'photos',
+        // no 'photo_urls' — desalineado desde siempre, por eso esta lista
+        // quedaba vacía y la sección de fotos nunca se mostraba en el detalle.
+        photoUrls: (json['photos'] as List?)
                 ?.map((e) => e as String)
                 .toList() ??
             [],

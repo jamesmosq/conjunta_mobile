@@ -44,6 +44,7 @@ class _NewPreAuthScreenState extends ConsumerState<NewPreAuthScreen> {
     ('family', 'Familiar'),
     ('domestic', 'Empleado doméstico'),
     ('provider', 'Proveedor'),
+    ('delivery', 'Domicilio'),
     ('other', 'Otro'),
   ];
 

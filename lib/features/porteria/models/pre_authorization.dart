@@ -79,6 +79,7 @@ class PreAuthorization {
         'domestic' => 'Empleado doméstico',
         'family' => 'Familiar',
         'provider' => 'Proveedor',
+        'delivery' => 'Domicilio',
         _ => 'Otro',
       };
 }

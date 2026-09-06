@@ -23,7 +23,10 @@ const restrictedRoutePrefixes = <String, Set<String>>{
   '/porteria/pre-auth/new': {'copropietario', 'administrador'},
   '/my-badge': {'administrador', 'auxiliar_contable', 'consejo', 'revisor_fiscal'},
   '/my-parking': {'copropietario'},
-  '/areas': {'copropietario'},
+  // Portero también entra para conocer el catálogo y el estado de reservas
+  // del conjunto (QA #20/#22) — no puede crear una reserva propia (el FAB
+  // "Reservar" ya se oculta para ese rol en area_detail_screen.dart).
+  '/areas': {'copropietario', 'portero'},
   '/account': {'copropietario'},
 };
 

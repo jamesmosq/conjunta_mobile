@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
 import '../../../../core/widgets/async_value_widget.dart';
+import '../../../auth/providers/auth_provider.dart';
 import '../../models/booking.dart';
 import '../../models/common_area.dart';
 import '../../providers/areas_provider.dart';
@@ -63,7 +64,12 @@ class _AreaDetailScreenState extends ConsumerState<AreaDetailScreen> {
           onPickDate: () => _pickDate(area),
         ),
       ),
-      floatingActionButton: areaAsync.valueOrNull?.isActive == true
+      // Solo copropietario reserva para sí mismo — StoreAreaBookingRequest
+      // exige un apartment_id, algo que portero/staff no tienen. El catálogo
+      // y el estado de reservas sí les aplica (ver #20/#22 del QA), pero
+      // crear una reserva no.
+      floatingActionButton: areaAsync.valueOrNull?.isActive == true &&
+              (ref.watch(authStateProvider).value?.isCopropietario ?? false)
           ? FloatingActionButton.extended(
               onPressed: () => context.push('/areas/${widget.areaId}/book'),
               icon: const Icon(Icons.bookmark_add_outlined),

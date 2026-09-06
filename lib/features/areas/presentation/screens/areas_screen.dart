@@ -16,15 +16,25 @@ class AreasScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    // El portero también entra aquí (ver #22/#20 del QA) para conocer el
+    // catálogo y el estado de reservas del conjunto — pero a diferencia del
+    // copropietario, no reserva para sí mismo, así que esta pestaña le
+    // muestra TODAS las reservas (así responde el backend cuando el rol no
+    // es copropietario), no solo "las mías".
+    final isPortero = ref.watch(authStateProvider).value?.isPortero ?? false;
+
     return DefaultTabController(
       length: 2,
       child: Scaffold(
         appBar: AppBar(
           title: const Text('Áreas Comunes'),
-          bottom: const TabBar(
+          bottom: TabBar(
             tabs: [
-              Tab(text: 'Reservar', icon: Icon(Icons.calendar_month_outlined)),
-              Tab(text: 'Mis Reservas', icon: Icon(Icons.bookmark_outline)),
+              const Tab(text: 'Catálogo', icon: Icon(Icons.calendar_month_outlined)),
+              Tab(
+                text: isPortero ? 'Reservas' : 'Mis Reservas',
+                icon: const Icon(Icons.bookmark_outline),
+              ),
             ],
           ),
         ),
@@ -152,12 +162,18 @@ class _MyBookingsTab extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final bookingsAsync = ref.watch(myBookingsProvider);
+    final isCopropietario =
+        ref.watch(authStateProvider).value?.isCopropietario ?? true;
     return AsyncValueWidget<List<Booking>>(
       value: bookingsAsync,
       data: (bookings) => RefreshIndicator(
         onRefresh: () => ref.read(myBookingsProvider.notifier).refresh(),
         child: bookings.isEmpty
-            ? const Center(child: Text('No tienes reservas'))
+            ? Center(
+                child: Text(isCopropietario
+                    ? 'No tienes reservas'
+                    : 'No hay reservas registradas'),
+              )
             : ListView.separated(
                 padding: const EdgeInsets.all(16),
                 itemCount: bookings.length,

@@ -66,6 +66,21 @@ void main() {
       );
     });
 
+    test('areas permite copropietario y portero, no a contratista', () {
+      expect(
+        redirectForRestrictedRoute(role: 'copropietario', location: '/areas'),
+        isNull,
+      );
+      expect(
+        redirectForRestrictedRoute(role: 'portero', location: '/areas/5'),
+        isNull,
+      );
+      expect(
+        redirectForRestrictedRoute(role: 'contratista', location: '/areas'),
+        '/contractor/orders',
+      );
+    });
+
     test('my-badge permite los 4 roles de staff, no a copropietario/portero/contratista', () {
       for (final role in ['administrador', 'auxiliar_contable', 'consejo', 'revisor_fiscal']) {
         expect(

@@ -1,6 +1,7 @@
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/models/apartment_lookup.dart';
 import '../../../core/network/api_client.dart';
 
 final manualVisitRepositoryProvider = Provider<ManualVisitRepository>((ref) {
@@ -25,6 +26,23 @@ class ManualVisitRepository {
   ManualVisitRepository(this._dio);
 
   final Dio _dio;
+
+  /// Busca a qué apartamento pertenece una placa (GET /vehicles/search/{plate})
+  /// para que portería no tenga que ubicar el apartamento a mano cuando ya
+  /// conoce la placa del vehículo que está entrando. Devuelve `null` si no
+  /// hay ningún vehículo registrado con esa placa.
+  Future<ApartmentLookup?> findApartmentByPlate(String plate) async {
+    final response = await _dio.get('/vehicles/search/$plate');
+    final raw = response.data as Map<String, dynamic>;
+    final list = raw['data'] as List;
+    if (list.isEmpty) return null;
+
+    final apartment =
+        (list.first as Map<String, dynamic>)['apartment'] as Map<String, dynamic>?;
+    if (apartment == null) return null;
+
+    return ApartmentLookup.fromJson(apartment);
+  }
 
   Future<ManualVisitResult> create({
     required String visitorName,

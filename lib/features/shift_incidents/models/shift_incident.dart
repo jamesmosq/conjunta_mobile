@@ -5,6 +5,8 @@ class ShiftIncident {
     required this.category,
     required this.urgency,
     required this.createdAt,
+    this.reportedBy,
+    this.adminNotified = false,
   });
 
   final int id;
@@ -12,6 +14,8 @@ class ShiftIncident {
   final String category;
   final String urgency;
   final String createdAt;
+  final String? reportedBy;
+  final bool adminNotified;
 
   bool get isUrgent => urgency == 'urgent';
 
@@ -29,5 +33,7 @@ class ShiftIncident {
         category: json['category'] as String? ?? 'other',
         urgency: json['urgency'] as String? ?? 'normal',
         createdAt: json['created_at']?.toString() ?? '',
+        reportedBy: json['reported_by'] as String?,
+        adminNotified: json['admin_notified'] as bool? ?? false,
       );
 }

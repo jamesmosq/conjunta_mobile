@@ -79,6 +79,12 @@ class _QuickAccessRow extends StatelessWidget {
             ),
             const SizedBox(width: 8),
             _QuickAccessChip(
+              icon: Icons.assignment_outlined,
+              label: 'Novedades',
+              onTap: () => context.push('/shift-incidents'),
+            ),
+            const SizedBox(width: 8),
+            _QuickAccessChip(
               icon: Icons.local_parking_outlined,
               label: 'Parqueaderos',
               onTap: () => context.push('/parking'),

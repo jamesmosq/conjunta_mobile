@@ -24,6 +24,7 @@ class _RegisterVisitScreenState extends ConsumerState<RegisterVisitScreen> {
   String _accessType = 'visitor';
   String _vehicleType = 'car';
   bool _sending = false;
+  bool _searchingPlate = false;
 
   static const _accessTypes = [
     ('visitor', 'Visitante'),
@@ -83,7 +84,16 @@ class _RegisterVisitScreenState extends ConsumerState<RegisterVisitScreen> {
                 ),
               ),
               const SizedBox(height: 16),
-              ApartmentPicker(onSelected: (apt) => setState(() => _apartment = apt)),
+              ApartmentPicker(
+                // Fuerza a ApartmentPicker a re-leer `selected` cuando lo
+                // llenamos nosotros (búsqueda por placa) — el widget solo
+                // inicializa su campo de texto desde `selected` en
+                // initState(), así que sin cambiar la key no se entera de
+                // una selección hecha por fuera del propio picker.
+                key: ValueKey(_apartment?.id),
+                selected: _apartment,
+                onSelected: (apt) => setState(() => _apartment = apt),
+              ),
               const SizedBox(height: 16),
               DropdownButtonFormField<String>(
                 value: _accessType,
@@ -101,11 +111,32 @@ class _RegisterVisitScreenState extends ConsumerState<RegisterVisitScreen> {
               TextFormField(
                 controller: _plateController,
                 textCapitalization: TextCapitalization.characters,
-                decoration: const InputDecoration(
+                // Sin esto el dropdown de tipo de vehículo de abajo (que
+                // depende de este texto) solo aparecía cuando algún otro
+                // campo disparaba un setState — escribir la placa por sí
+                // sola no lo revelaba.
+                onChanged: (_) => setState(() {}),
+                decoration: InputDecoration(
                   labelText: 'Placa del vehículo (opcional)',
                   hintText: 'ABC123',
-                  prefixIcon: Icon(Icons.directions_car_outlined),
-                  border: OutlineInputBorder(),
+                  prefixIcon: const Icon(Icons.directions_car_outlined),
+                  border: const OutlineInputBorder(),
+                  suffixIcon: _searchingPlate
+                      ? const Padding(
+                          padding: EdgeInsets.all(12),
+                          child: SizedBox(
+                            width: 16,
+                            height: 16,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          ),
+                        )
+                      : IconButton(
+                          icon: const Icon(Icons.search),
+                          tooltip: 'Buscar apartamento por placa',
+                          onPressed: _plateController.text.trim().isEmpty
+                              ? null
+                              : _searchByPlate,
+                        ),
                 ),
               ),
               if (_plateController.text.trim().isNotEmpty) ...[
@@ -145,6 +176,44 @@ class _RegisterVisitScreenState extends ConsumerState<RegisterVisitScreen> {
         ),
       ),
     );
+  }
+
+  Future<void> _searchByPlate() async {
+    final plate = _plateController.text.trim();
+    if (plate.isEmpty) return;
+
+    setState(() => _searchingPlate = true);
+    try {
+      final apartment = await ref
+          .read(manualVisitRepositoryProvider)
+          .findApartmentByPlate(plate);
+
+      if (!mounted) return;
+
+      if (apartment == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('No hay ningún vehículo registrado con esa placa.'),
+          ),
+        );
+        return;
+      }
+
+      setState(() => _apartment = apartment);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Encontrado: Apto ${apartment.fullIdentifier}'),
+          backgroundColor: Colors.green,
+        ),
+      );
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('No se pudo buscar la placa. Intenta de nuevo.')),
+      );
+    } finally {
+      if (mounted) setState(() => _searchingPlate = false);
+    }
   }
 
   Future<void> _submit() async {

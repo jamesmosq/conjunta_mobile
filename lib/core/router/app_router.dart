@@ -73,6 +73,7 @@ import '../../features/access_validation/presentation/screens/validate_access_sc
 
 // Reportar incidente, Parqueaderos, No autorizados — portero
 import '../../features/shift_incidents/presentation/screens/report_incident_screen.dart';
+import '../../features/shift_incidents/presentation/screens/shift_incidents_screen.dart';
 import '../../features/parking/presentation/screens/parking_screen.dart';
 import '../../features/blacklist/presentation/screens/blacklist_screen.dart';
 
@@ -376,6 +377,10 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/shift-incidents/new',
         builder: (_, __) => const ReportIncidentScreen(),
+      ),
+      GoRoute(
+        path: '/shift-incidents',
+        builder: (_, __) => const ShiftIncidentsScreen(),
       ),
       GoRoute(
         path: '/parking',

@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../features/auth/providers/auth_provider.dart';
 import '../data/porteria_repository.dart';
+import '../models/access_request.dart';
 import '../models/package.dart';
 import '../models/pre_authorization.dart';
 import '../models/visit.dart';
@@ -179,6 +180,44 @@ class VisitHistoryNotifier extends StateNotifier<VisitHistoryState> {
       '${to.year}-${to.month.toString().padLeft(2, '0')}-${to.day.toString().padLeft(2, '0')}',
     );
   }
+}
+
+// ── Access requests (QA #10) ────────────────────────────────────────────────
+
+final accessRequestsProvider =
+    AsyncNotifierProvider<AccessRequestsNotifier, List<AccessRequest>>(
+        AccessRequestsNotifier.new);
+
+class AccessRequestsNotifier extends AsyncNotifier<List<AccessRequest>> {
+  @override
+  Future<List<AccessRequest>> build() async {
+    return ref.read(porteriaRepositoryProvider).getAccessRequests();
+  }
+
+  Future<void> refresh() async {
+    ref.invalidateSelf();
+  }
+}
+
+/// Solicitud que el portero acaba de crear y sigue en vivo mientras espera
+/// respuesta — se actualiza con el evento Reverb `access_request.decided`.
+final activeAccessRequestProvider =
+    StateNotifierProvider<ActiveAccessRequestNotifier, AccessRequest?>(
+  (_) => ActiveAccessRequestNotifier(),
+);
+
+class ActiveAccessRequestNotifier extends StateNotifier<AccessRequest?> {
+  ActiveAccessRequestNotifier() : super(null);
+
+  void track(AccessRequest request) => state = request;
+
+  void applyDecision(int id, String status, String? respondedByName) {
+    if (state?.id == id) {
+      state = state!.copyWith(status: status, respondedByName: respondedByName);
+    }
+  }
+
+  void clear() => state = null;
 }
 
 // ── Packages ─────────────────────────────────────────────────────────────────

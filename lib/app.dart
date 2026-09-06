@@ -54,7 +54,6 @@ class _AppState extends ConsumerState<App> {
           userId: user.id.toString(),
           role: user.role,
           tenantId: user.tenantId,
-          apartmentId: user.apartmentId,
         );
   }
 

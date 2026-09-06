@@ -237,6 +237,7 @@ class _NotificationItem extends ConsumerWidget {
   IconData _iconFor(String type) => switch (type) {
         'charge_added' => Icons.receipt_outlined,
         'visit_registered' => Icons.person_pin_outlined,
+        'access_request_created' => Icons.how_to_reg_outlined,
         'package_arrived' => Icons.inventory_2_outlined,
         'assembly_convoked' => Icons.groups_outlined,
         'booking_approved' => Icons.event_available_outlined,

@@ -92,6 +92,25 @@ void main() {
       );
     });
 
+    test('access-requests/new (portero) no se confunde con access-request/:id (copropietario)', () {
+      expect(
+        redirectForRestrictedRoute(role: 'portero', location: '/access-requests/new'),
+        isNull,
+      );
+      expect(
+        redirectForRestrictedRoute(role: 'copropietario', location: '/access-requests/new'),
+        '/home',
+      );
+      expect(
+        redirectForRestrictedRoute(role: 'copropietario', location: '/access-request/42'),
+        isNull,
+      );
+      expect(
+        redirectForRestrictedRoute(role: 'portero', location: '/access-request/42'),
+        '/porteria-home',
+      );
+    });
+
     test('my-badge permite los 4 roles de staff, no a copropietario/portero/contratista', () {
       for (final role in ['administrador', 'auxiliar_contable', 'consejo', 'revisor_fiscal']) {
         expect(

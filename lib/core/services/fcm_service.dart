@@ -134,6 +134,15 @@ class FcmService {
       case 'package_arrived':
         router.push('/porteria');
 
+      // QA #10: visitante esperando autorización remota del residente
+      case 'access_request_created':
+        final reqId = _parseInt(data['access_request_id']);
+        if (reqId != null) {
+          router.push('/access-request/$reqId');
+        } else {
+          router.push('/notifications');
+        }
+
       // Áreas comunes — reservas
       case 'booking_approved':
       case 'booking_rejected':
@@ -237,6 +246,9 @@ class FcmService {
         return ('/visits/pre-auth', null);
       case 'package_arrived':
         return ('/porteria', null);
+      case 'access_request_created':
+        final reqId = _parseInt(data['access_request_id']);
+        return (reqId != null ? '/access-request/$reqId' : '/notifications', null);
       case 'booking_approved':
       case 'booking_rejected':
         final areaId = _parseInt(data['area_id']);

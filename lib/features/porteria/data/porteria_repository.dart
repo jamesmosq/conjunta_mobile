@@ -2,6 +2,7 @@ import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/network/api_client.dart';
+import '../models/access_request.dart';
 import '../models/package.dart';
 import '../models/pre_authorization.dart';
 import '../models/visit.dart';
@@ -128,5 +129,53 @@ class PorteriaRepository {
     final raw = response.data as Map<String, dynamic>;
     final data = raw['data'] as Map<String, dynamic>? ?? raw;
     return Visit.fromJson(data);
+  }
+
+  // ─── QA #10: autorización remota de visitante ───────────────────────────
+
+  Future<AccessRequest> createAccessRequest({
+    required int apartmentId,
+    required String visitorName,
+    String? documentNumber,
+    String? reason,
+  }) async {
+    final response = await _dio.post('/access-requests', data: {
+      'apartment_id': apartmentId,
+      'visitor_name': visitorName,
+      if (documentNumber != null && documentNumber.isNotEmpty)
+        'document_number': documentNumber,
+      if (reason != null && reason.isNotEmpty) 'reason': reason,
+    });
+    final raw = response.data as Map<String, dynamic>;
+    final data = raw['data'] as Map<String, dynamic>? ?? raw;
+    return AccessRequest.fromJson(data);
+  }
+
+  Future<List<AccessRequest>> getAccessRequests() async {
+    final response = await _dio.get('/access-requests');
+    final raw = response.data;
+    final list = raw is Map ? (raw['data'] ?? raw) : raw;
+    return (list as List)
+        .map((e) => AccessRequest.fromJson(e as Map<String, dynamic>))
+        .toList();
+  }
+
+  Future<AccessRequest> getAccessRequest(int id) async {
+    final response = await _dio.get('/access-requests/$id');
+    final raw = response.data;
+    final json = raw is Map && raw.containsKey('data')
+        ? raw['data'] as Map<String, dynamic>
+        : raw as Map<String, dynamic>;
+    return AccessRequest.fromJson(json);
+  }
+
+  Future<AccessRequest> respondAccessRequest(int id, bool approved) async {
+    final response =
+        await _dio.post('/access-requests/$id/respond', data: {
+      'approved': approved,
+    });
+    final raw = response.data as Map<String, dynamic>;
+    final data = raw['data'] as Map<String, dynamic>? ?? raw;
+    return AccessRequest.fromJson(data);
   }
 }

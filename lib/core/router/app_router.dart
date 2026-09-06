@@ -14,6 +14,8 @@ import '../../features/account/presentation/screens/account_screen.dart';
 import '../../features/account/presentation/screens/paz_y_salvo_screen.dart';
 
 // Portería
+import '../../features/porteria/presentation/screens/access_request_review_screen.dart';
+import '../../features/porteria/presentation/screens/new_access_request_screen.dart';
 import '../../features/porteria/presentation/screens/porteria_screen.dart';
 import '../../features/porteria/presentation/screens/residents_directory_screen.dart';
 import '../../features/porteria/presentation/screens/pre_auth_screen.dart';
@@ -378,6 +380,18 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/shift-incidents/new',
         builder: (_, __) => const ReportIncidentScreen(),
+      ),
+      // QA #10: portero solicita autorización remota; copropietario aprueba/rechaza
+      GoRoute(
+        path: '/access-requests/new',
+        builder: (_, __) => const NewAccessRequestScreen(),
+      ),
+      GoRoute(
+        path: '/access-request/:id',
+        builder: (context, state) {
+          final id = int.tryParse(state.pathParameters['id'] ?? '') ?? 0;
+          return AccessRequestReviewScreen(accessRequestId: id);
+        },
       ),
       GoRoute(
         path: '/shift-incidents',

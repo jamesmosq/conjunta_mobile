@@ -30,7 +30,6 @@ class ReverbService {
     required String userId,
     required String role,
     required int? tenantId,
-    required int? apartmentId,
   }) async {
     if (_initialized) return;
 
@@ -49,8 +48,13 @@ class ReverbService {
       _initialized = true;
 
       if (tenantId != null) {
-        if (role == 'copropietario' && apartmentId != null) {
-          await _client!.subscribe('private-apto.$apartmentId');
+        // Backend autoriza este canal por user id propio (routes/channels.php:
+        // `apto.{userId}` -> `$user->id === $userId`), no por apartamento —
+        // antes se suscribía con `apartmentId`, que nunca coincide con el id
+        // del usuario, así que la suscripción siempre era rechazada (403) y
+        // el copropietario nunca recibía tiempo real en foreground.
+        if (role == 'copropietario') {
+          await _client!.subscribe('private-apto.$userId');
         }
         if (role == 'portero') {
           await _client!.subscribe('private-porteria.$tenantId');
@@ -152,6 +156,21 @@ class ReverbService {
       case 'work_order.updated':
         _ref.invalidate(activeWorkOrdersProvider);
         _ref.invalidate(notificationsProvider);
+      case 'access_request.decided':
+        // Portero: si es la solicitud que está siguiendo en vivo, actualiza
+        // su estado sin esperar a que refresque la lista.
+        final id = data['access_request_id'] as int?;
+        final status = data['status'] as String?;
+        if (id != null && status != null) {
+          try {
+            _ref.read(activeAccessRequestProvider.notifier).applyDecision(
+                  id,
+                  status,
+                  data['responded_by'] as String?,
+                );
+          } catch (_) {}
+        }
+        _ref.invalidate(accessRequestsProvider);
     }
   }
 }

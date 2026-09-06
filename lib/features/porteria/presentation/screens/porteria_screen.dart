@@ -79,6 +79,12 @@ class _QuickAccessRow extends StatelessWidget {
             ),
             const SizedBox(width: 8),
             _QuickAccessChip(
+              icon: Icons.notifications_active_outlined,
+              label: 'Autorizar remoto',
+              onTap: () => context.push('/access-requests/new'),
+            ),
+            const SizedBox(width: 8),
+            _QuickAccessChip(
               icon: Icons.assignment_outlined,
               label: 'Novedades',
               onTap: () => context.push('/shift-incidents'),

@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 
 import '../../../../core/widgets/async_value_widget.dart';
 import '../../../auth/providers/auth_provider.dart';
+import '../../data/areas_repository.dart';
 import '../../models/booking.dart';
 import '../../models/common_area.dart';
 import '../../providers/areas_provider.dart';
@@ -53,6 +54,9 @@ class _AreaDetailScreenState extends ConsumerState<AreaDetailScreen> {
         ? AsyncValue.data(widget.area!)
         : ref.watch(selectedAreaProvider(widget.areaId));
 
+    final session = ref.watch(authStateProvider).value;
+    final isPortero = session?.isPortero ?? false;
+
     return Scaffold(
       body: AsyncValueWidget<CommonArea>(
         value: areaAsync,
@@ -62,21 +66,202 @@ class _AreaDetailScreenState extends ConsumerState<AreaDetailScreen> {
           dateFmt: _dateFmt,
           dateFmtKey: _dateFmtKey,
           onPickDate: () => _pickDate(area),
+          isPortero: isPortero,
         ),
       ),
       // Solo copropietario reserva para sí mismo — StoreAreaBookingRequest
       // exige un apartment_id, algo que portero/staff no tienen. El catálogo
       // y el estado de reservas sí les aplica (ver #20/#22 del QA), pero
-      // crear una reserva no.
-      floatingActionButton: areaAsync.valueOrNull?.isActive == true &&
-              (ref.watch(authStateProvider).value?.isCopropietario ?? false)
-          ? FloatingActionButton.extended(
-              onPressed: () => context.push('/areas/${widget.areaId}/book'),
-              icon: const Icon(Icons.bookmark_add_outlined),
-              label: const Text('Reservar'),
-            )
-          : null,
+      // crear una reserva no. Portero en cambio puede bloquear una franja
+      // (QA #21) para marcarla ocupada por administración.
+      floatingActionButton: areaAsync.valueOrNull?.isActive != true
+          ? null
+          : (session?.isCopropietario ?? false)
+              ? FloatingActionButton.extended(
+                  onPressed: () => context.push('/areas/${widget.areaId}/book'),
+                  icon: const Icon(Icons.bookmark_add_outlined),
+                  label: const Text('Reservar'),
+                )
+              : isPortero
+                  ? FloatingActionButton.extended(
+                      onPressed: () => _showBlockSlotSheet(
+                        context,
+                        ref,
+                        areaAsync.value!,
+                        _selectedDate,
+                        _dateFmtKey,
+                      ),
+                      icon: const Icon(Icons.block_outlined),
+                      label: const Text('Bloquear franja'),
+                    )
+                  : null,
     );
+  }
+}
+
+Future<void> _showBlockSlotSheet(
+  BuildContext context,
+  WidgetRef ref,
+  CommonArea area,
+  DateTime selectedDate,
+  DateFormat dateFmtKey,
+) async {
+  TimeOfDay? start;
+  TimeOfDay? end;
+  final reasonCtrl = TextEditingController();
+
+  final confirmed = await showModalBottomSheet<bool>(
+    context: context,
+    isScrollControlled: true,
+    builder: (sheetContext) => StatefulBuilder(
+      builder: (sheetContext, setSheetState) => Padding(
+        padding: EdgeInsets.only(
+          left: 20,
+          right: 20,
+          top: 20,
+          bottom: 20 + MediaQuery.of(sheetContext).viewInsets.bottom,
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Bloquear franja — ${area.name}',
+              style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 16),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              'Los residentes la verán como "Ocupado por administración".',
+              style: TextStyle(
+                  fontSize: 12,
+                  color: Theme.of(sheetContext).colorScheme.onSurfaceVariant),
+            ),
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton.icon(
+                    icon: const Icon(Icons.access_time, size: 18),
+                    label: Text(start?.format(sheetContext) ?? 'Hora inicio'),
+                    onPressed: () async {
+                      final picked = await showTimePicker(
+                        context: sheetContext,
+                        initialTime: start ?? const TimeOfDay(hour: 9, minute: 0),
+                      );
+                      if (picked != null) setSheetState(() => start = picked);
+                    },
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: OutlinedButton.icon(
+                    icon: const Icon(Icons.access_time_filled, size: 18),
+                    label: Text(end?.format(sheetContext) ?? 'Hora fin'),
+                    onPressed: () async {
+                      final picked = await showTimePicker(
+                        context: sheetContext,
+                        initialTime: end ?? const TimeOfDay(hour: 10, minute: 0),
+                      );
+                      if (picked != null) setSheetState(() => end = picked);
+                    },
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: reasonCtrl,
+              decoration: const InputDecoration(
+                labelText: 'Motivo (opcional, solo visible para administración)',
+                border: OutlineInputBorder(),
+              ),
+              maxLength: 500,
+            ),
+            const SizedBox(height: 8),
+            SizedBox(
+              width: double.infinity,
+              child: FilledButton(
+                onPressed: start != null && end != null
+                    ? () => Navigator.of(sheetContext).pop(true)
+                    : null,
+                child: const Text('Bloquear'),
+              ),
+            ),
+          ],
+        ),
+      ),
+    ),
+  );
+
+  if (confirmed != true || start == null || end == null) return;
+
+  String fmt(TimeOfDay t) =>
+      '${t.hour.toString().padLeft(2, '0')}:${t.minute.toString().padLeft(2, '0')}';
+
+  try {
+    await ref.read(areasRepositoryProvider).blockSlot(
+          area.id,
+          date: dateFmtKey.format(selectedDate),
+          startTime: fmt(start!),
+          endTime: fmt(end!),
+          reason: reasonCtrl.text.trim(),
+        );
+    ref.invalidate(areaAvailabilityProvider(
+        (areaId: area.id, date: dateFmtKey.format(selectedDate))));
+    if (context.mounted) {
+      ScaffoldMessenger.of(context)
+          .showSnackBar(const SnackBar(content: Text('Franja bloqueada.')));
+    }
+  } catch (_) {
+    if (context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('No se pudo bloquear la franja.')));
+    }
+  }
+}
+
+Future<void> _confirmUnblock(
+  BuildContext context,
+  WidgetRef ref,
+  int areaId,
+  Booking booking,
+  String dateKey,
+) async {
+  final confirmed = await showDialog<bool>(
+    context: context,
+    builder: (dialogContext) => AlertDialog(
+      title: const Text('Desbloquear franja'),
+      content: Text(
+          '¿Liberar el horario ${booking.startTime} – ${booking.endTime}?'),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(dialogContext).pop(false),
+          child: const Text('Cancelar'),
+        ),
+        FilledButton(
+          onPressed: () => Navigator.of(dialogContext).pop(true),
+          child: const Text('Desbloquear'),
+        ),
+      ],
+    ),
+  );
+
+  if (confirmed != true) return;
+
+  try {
+    await ref
+        .read(areasRepositoryProvider)
+        .unblockSlot(areaId, booking.blockedSlotId!);
+    ref.invalidate(areaAvailabilityProvider((areaId: areaId, date: dateKey)));
+    if (context.mounted) {
+      ScaffoldMessenger.of(context)
+          .showSnackBar(const SnackBar(content: Text('Franja desbloqueada.')));
+    }
+  } catch (_) {
+    if (context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('No se pudo desbloquear la franja.')));
+    }
   }
 }
 
@@ -89,6 +274,7 @@ class _DetailBody extends ConsumerWidget {
     required this.dateFmt,
     required this.dateFmtKey,
     required this.onPickDate,
+    required this.isPortero,
   });
 
   final CommonArea area;
@@ -96,6 +282,7 @@ class _DetailBody extends ConsumerWidget {
   final DateFormat dateFmt;
   final DateFormat dateFmtKey;
   final VoidCallback onPickDate;
+  final bool isPortero;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -247,7 +434,12 @@ class _DetailBody extends ConsumerWidget {
                   ],
                 ),
                 const SizedBox(height: 8),
-                _AvailabilitySection(asyncValue: availAsync),
+                _AvailabilitySection(
+                  asyncValue: availAsync,
+                  isPortero: isPortero,
+                  areaId: area.id,
+                  dateKey: dateKey,
+                ),
               ],
             ),
           ),
@@ -285,13 +477,21 @@ class _DetailBody extends ConsumerWidget {
 
 // ─── Availability section ─────────────────────────────────────────────────────
 
-class _AvailabilitySection extends StatelessWidget {
-  const _AvailabilitySection({required this.asyncValue});
+class _AvailabilitySection extends ConsumerWidget {
+  const _AvailabilitySection({
+    required this.asyncValue,
+    required this.isPortero,
+    required this.areaId,
+    required this.dateKey,
+  });
 
   final AsyncValue<List<Booking>> asyncValue;
+  final bool isPortero;
+  final int areaId;
+  final String dateKey;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final cs = Theme.of(context).colorScheme;
 
     return asyncValue.when(
@@ -356,7 +556,13 @@ class _AvailabilitySection extends StatelessWidget {
               spacing: 8,
               runSpacing: 8,
               children: bookings
-                  .map((b) => _OccupiedSlot(booking: b))
+                  .map((b) => _OccupiedSlot(
+                        booking: b,
+                        onUnblock: isPortero && b.isAdminBlock
+                            ? () =>
+                                _confirmUnblock(context, ref, areaId, b, dateKey)
+                            : null,
+                      ))
                   .toList(),
             ),
           ],
@@ -367,34 +573,57 @@ class _AvailabilitySection extends StatelessWidget {
 }
 
 class _OccupiedSlot extends StatelessWidget {
-  const _OccupiedSlot({required this.booking});
+  const _OccupiedSlot({required this.booking, this.onUnblock});
 
   final Booking booking;
+  // Solo se recibe cuando el viewer es portero y la franja es un bloqueo
+  // administrativo (no una reserva real) — habilita desbloquearla con un tap.
+  final VoidCallback? onUnblock;
 
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
+    final content = Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(
+          booking.isAdminBlock
+              ? Icons.admin_panel_settings_outlined
+              : Icons.block_outlined,
+          size: 12,
+          color: cs.onErrorContainer,
+        ),
+        const SizedBox(width: 4),
+        Text(
+          booking.isAdminBlock
+              ? '${booking.startTime}–${booking.endTime} · Ocupado por administración'
+              : '${booking.startTime} – ${booking.endTime}',
+          style: TextStyle(
+            fontSize: 12,
+            fontWeight: FontWeight.w600,
+            color: cs.onErrorContainer,
+          ),
+        ),
+        if (onUnblock != null) ...[
+          const SizedBox(width: 4),
+          Icon(Icons.close, size: 14, color: cs.onErrorContainer),
+        ],
+      ],
+    );
+
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
       decoration: BoxDecoration(
         color: cs.errorContainer,
         borderRadius: BorderRadius.circular(20),
       ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(Icons.block_outlined, size: 12, color: cs.onErrorContainer),
-          const SizedBox(width: 4),
-          Text(
-            '${booking.startTime} – ${booking.endTime}',
-            style: TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.w600,
-              color: cs.onErrorContainer,
-            ),
-          ),
-        ],
-      ),
+      child: onUnblock != null
+          ? InkWell(
+              onTap: onUnblock,
+              borderRadius: BorderRadius.circular(20),
+              child: content,
+            )
+          : content,
     );
   }
 }

@@ -62,7 +62,7 @@ class AreasRepository {
         .get('/common-areas/$areaId/availability', queryParameters: {'date': date});
     final raw = response.data;
     final list = raw is Map ? (raw['data'] ?? raw) : raw;
-    // Backend returns slot objects {startStr, endStr, available, reason}.
+    // Backend returns slot objects {startStr, endStr, available, reason, blocked_slot_id}.
     // We expose only the occupied slots as Booking-like objects for the UI.
     return (list as List)
         .cast<Map<String, dynamic>>()
@@ -74,7 +74,29 @@ class AreasRepository {
               startTime: slot['startStr'] as String? ?? '',
               endTime: slot['endStr'] as String? ?? '',
               status: 'occupied',
+              blockedSlotId: slot['blocked_slot_id'] as int?,
             ))
         .toList();
+  }
+
+  /// QA #21: portero/admin bloquea una franja para que los residentes la
+  /// vean ocupada ("Ocupado por administración"), sin crear una reserva real.
+  Future<void> blockSlot(
+    int areaId, {
+    required String date,
+    required String startTime,
+    required String endTime,
+    String? reason,
+  }) async {
+    await _dio.post('/common-areas/$areaId/block-slot', data: {
+      'date': date,
+      'start_time': startTime,
+      'end_time': endTime,
+      if (reason != null && reason.isNotEmpty) 'reason': reason,
+    });
+  }
+
+  Future<void> unblockSlot(int areaId, int blockedSlotId) async {
+    await _dio.delete('/common-areas/$areaId/block-slot/$blockedSlotId');
   }
 }

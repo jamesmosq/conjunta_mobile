@@ -15,6 +15,7 @@ import '../../features/account/presentation/screens/paz_y_salvo_screen.dart';
 
 // Portería
 import '../../features/porteria/presentation/screens/porteria_screen.dart';
+import '../../features/porteria/presentation/screens/residents_directory_screen.dart';
 import '../../features/porteria/presentation/screens/pre_auth_screen.dart';
 import '../../features/porteria/presentation/screens/new_pre_auth_screen.dart';
 import '../../features/porteria/presentation/screens/visit_history_screen.dart';
@@ -405,6 +406,10 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/staff-access',
         builder: (_, __) => const StaffAccessScreen(),
+      ),
+      GoRoute(
+        path: '/residents-directory',
+        builder: (_, __) => const ResidentsDirectoryScreen(),
       ),
 
       // ── Shell contratista (bottom nav 2 tabs) ─────────────────────────

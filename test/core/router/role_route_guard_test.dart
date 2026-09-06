@@ -81,6 +81,17 @@ void main() {
       );
     });
 
+    test('residents-directory es solo de portero', () {
+      expect(
+        redirectForRestrictedRoute(role: 'portero', location: '/residents-directory'),
+        isNull,
+      );
+      expect(
+        redirectForRestrictedRoute(role: 'copropietario', location: '/residents-directory'),
+        '/home',
+      );
+    });
+
     test('my-badge permite los 4 roles de staff, no a copropietario/portero/contratista', () {
       for (final role in ['administrador', 'auxiliar_contable', 'consejo', 'revisor_fiscal']) {
         expect(

@@ -113,6 +113,12 @@ class _QuickAccessRow extends StatelessWidget {
               label: 'Personal',
               onTap: () => context.push('/staff-access'),
             ),
+            const SizedBox(width: 8),
+            _QuickAccessChip(
+              icon: Icons.contacts_outlined,
+              label: 'Residentes',
+              onTap: () => context.push('/residents-directory'),
+            ),
           ],
         ),
       ),

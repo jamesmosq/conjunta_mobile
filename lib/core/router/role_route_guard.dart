@@ -17,6 +17,7 @@ const restrictedRoutePrefixes = <String, Set<String>>{
   '/blacklist': {'portero'},
   '/visits/new': {'portero'},
   '/staff-access': {'portero'},
+  '/residents-directory': {'portero'},
   '/contractor': {'contratista'},
   '/qr-invitations': {'copropietario', 'administrador'},
   '/chat': {'copropietario', 'administrador'},

@@ -32,6 +32,11 @@ class _AccessRequestReviewScreenState
   }
 
   Future<void> _respond(bool approved) async {
+    // Guarda síncrona: un doble-tap muy rápido puede disparar dos onPressed
+    // antes de que el rebuild deshabilite el botón (el closure del build
+    // anterior sigue "vivo" hasta que Flutter repinta), así que _responding
+    // debe revisarse aquí también, no solo en el onPressed del widget.
+    if (_responding) return;
     setState(() => _responding = true);
     try {
       final updated = await ref

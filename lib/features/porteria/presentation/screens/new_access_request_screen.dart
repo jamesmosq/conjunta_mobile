@@ -38,6 +38,7 @@ class _NewAccessRequestScreenState
   }
 
   Future<void> _submit() async {
+    if (_submitting) return;
     if (!_formKey.currentState!.validate() || _apartment == null) {
       if (_apartment == null) {
         ScaffoldMessenger.of(context).showSnackBar(

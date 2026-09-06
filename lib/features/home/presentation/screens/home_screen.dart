@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../auth/models/user_session.dart';
 import '../../../auth/providers/auth_provider.dart';
 import '../../../surveys/providers/surveys_provider.dart';
 import '../../../chat/providers/chat_provider.dart';
@@ -99,7 +100,7 @@ class HomeScreen extends ConsumerWidget {
 class _WelcomeBanner extends StatelessWidget {
   const _WelcomeBanner({required this.user});
 
-  final dynamic user;
+  final AuthUser? user;
 
   @override
   Widget build(BuildContext context) {
@@ -143,7 +144,9 @@ class _WelcomeBanner extends StatelessWidget {
                       borderRadius: BorderRadius.circular(20),
                     ),
                     child: Text(
-                      'Apto ${user?.apartmentId}',
+                      // Mostraba el id numérico del apartamento (ej. "Apto 88") en vez
+                      // del número real (ej. "Apto 101") — ya viene en user.apartments.
+                      'Apto ${_apartmentNumber(user!)}',
                       style: const TextStyle(color: Colors.white, fontSize: 12),
                     ),
                   ),
@@ -155,6 +158,13 @@ class _WelcomeBanner extends StatelessWidget {
         ],
       ),
     );
+  }
+
+  String _apartmentNumber(AuthUser user) {
+    for (final apt in user.apartments) {
+      if (apt.id == user.apartmentId) return apt.number;
+    }
+    return '${user.apartmentId}';
   }
 }
 

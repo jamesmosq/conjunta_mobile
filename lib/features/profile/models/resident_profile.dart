@@ -24,10 +24,14 @@ class Vehicle {
   final String? model;
   final String? color;
 
+  // Alineado con el enum `type` de vehicles en el backend (car,moto,bike,
+  // bicycle,truck) — ver comentario en profile_screen.dart::_AddVehicleSheet.
   String get typeLabel => switch (type) {
         'car' => 'Carro',
-        'motorcycle' => 'Moto',
-        'bicycle' => 'Bicicleta',
+        'moto' => 'Moto',
+        'bike' => 'Bicicleta',
+        'bicycle' => 'Bicicleta eléctrica',
+        'truck' => 'Camión',
         _ => type,
       };
 }

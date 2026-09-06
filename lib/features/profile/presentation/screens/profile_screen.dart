@@ -443,13 +443,19 @@ class _AddVehicleSheetState extends State<_AddVehicleSheet> {
               decoration: const InputDecoration(
                   labelText: 'Tipo de vehículo',
                   prefixIcon: Icon(Icons.commute_outlined)),
+              // Valores alineados con el enum `type` de vehicles en el backend
+              // (StoreVehicleRequest: car,moto,bike,bicycle,truck) — antes
+              // este picker mandaba 'motorcycle', que el backend rechaza con
+              // 422 ("El tipo de vehículo debe ser..."), y no ofrecía 'bike'
+              // en absoluto. Eso rompía el registro en cuanto el residente
+              // elegía "Motocicleta" (típicamente su segundo vehículo).
               items: const [
                 DropdownMenuItem(value: 'car', child: Text('Carro')),
+                DropdownMenuItem(value: 'moto', child: Text('Moto')),
+                DropdownMenuItem(value: 'bike', child: Text('Bicicleta')),
                 DropdownMenuItem(
-                    value: 'motorcycle', child: Text('Motocicleta')),
-                DropdownMenuItem(
-                    value: 'bicycle', child: Text('Bicicleta')),
-                DropdownMenuItem(value: 'truck', child: Text('Camioneta')),
+                    value: 'bicycle', child: Text('Bicicleta eléctrica')),
+                DropdownMenuItem(value: 'truck', child: Text('Camión')),
               ],
               onChanged: (v) => setState(() => _type = v!),
             ),

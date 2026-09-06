@@ -104,18 +104,15 @@ class AnnouncementsNotifier extends StateNotifier<AnnouncementsState> {
     await _repo.markRead(id);
     state = state.copyWith(
       items: state.items
-          .map((a) => a.id == id
-              ? a.copyWith(readAt: DateTime.now().toIso8601String())
-              : a)
+          .map((a) => a.id == id ? a.copyWith(read: true) : a)
           .toList(),
     );
   }
 
   Future<void> markAllRead() async {
     await _repo.markAllRead();
-    final now = DateTime.now().toIso8601String();
     state = state.copyWith(
-      items: state.items.map((a) => a.copyWith(readAt: now)).toList(),
+      items: state.items.map((a) => a.copyWith(read: true)).toList(),
     );
   }
 }

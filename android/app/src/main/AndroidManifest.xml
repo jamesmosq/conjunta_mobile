@@ -1,6 +1,10 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
     <uses-permission android:name="android.permission.INTERNET"/>
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED"/>
+    <!-- Notificaciones push (Android 13+ requiere permiso en tiempo de ejecución;
+         sin esta declaración el sistema nunca muestra la notificación aunque el
+         código de FCM esté correcto y requestPermission() se llame desde Dart). -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
     <application
         android:label="ConjuntaApp"
         android:name="${applicationName}"
@@ -32,6 +36,19 @@
         <meta-data
             android:name="flutterEmbedding"
             android:value="2" />
+
+        <!-- Ícono y canal por defecto para notificaciones push mostradas por el
+             sistema (app en background/terminada). Usa el ícono de la app a
+             falta de un ícono monocromo dedicado — Android lo renderiza como
+             silueta blanca en la barra de estado, que es aceptable pero no
+             ideal; un ícono blanco/transparente diseñado a propósito se vería
+             mejor. -->
+        <meta-data
+            android:name="com.google.firebase.messaging.default_notification_icon"
+            android:resource="@mipmap/launcher_icon" />
+        <meta-data
+            android:name="com.google.firebase.messaging.default_notification_channel_id"
+            android:value="conjunta_default_channel" />
     </application>
     <!-- Required to query activities that can process text, see:
          https://developer.android.com/training/package-visibility and
